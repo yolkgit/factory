@@ -6,6 +6,8 @@ const path = require('path');
 const dataDir = path.join(__dirname, '..', 'data');
 const tree = JSON.parse(fs.readFileSync(path.join(dataDir, 'ksic-tree.json'), 'utf8'));
 const index = JSON.parse(fs.readFileSync(path.join(dataDir, 'ksic-index.json'), 'utf8'));
+const oldnewPath = path.join(dataDir, 'ksic-oldnew.json');
+const oldnew = fs.existsSync(oldnewPath) ? JSON.parse(fs.readFileSync(oldnewPath, 'utf8')) : [];
 
 const codes = new Set(tree.map((n) => n.code));
 const missing = new Set();
@@ -19,6 +21,7 @@ const out = {
   crawledFrom: 'kssc.kostat.go.kr',
   tree: tree.map((n) => [n.code, n.name, n.level, n.parent]),
   terms: index.map((r) => [r.code, r.term]),
+  oldnew: oldnew.map((r) => [r.new, r.old, r.oldName]),
 };
 
 const outPath = path.join(__dirname, '..', 'public', 'ksic-data.json');

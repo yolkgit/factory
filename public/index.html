@@ -42,25 +42,37 @@
   }
   .searchbox input {
     flex: 1; border: 0; outline: 0; font-size: 17px; padding: 8px 6px;
-    background: transparent;
+    background: transparent; min-width: 0;
   }
   .searchbox button {
     border: 0; background: var(--blue); color: #fff; font-size: 15px;
     border-radius: 10px; padding: 0 18px; cursor: pointer;
   }
-  .hint { font-size: 12.5px; color: #6b7684; margin: 10px 4px 0; }
+  .tabs { display: flex; gap: 6px; margin: 14px 2px 0; }
+  .tab {
+    border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    font-size: 13.5px; padding: 7px 14px; border-radius: 20px; cursor: pointer; font-weight: 600;
+  }
+  .tab.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .hint { font-size: 12.5px; color: var(--muted); margin: 10px 4px 0; }
   .section-title {
-    margin: 26px 4px 10px; font-size: 14px; font-weight: 700; color: #444f5e;
+    margin: 24px 4px 10px; font-size: 14px; font-weight: 700; color: #444f5e;
     display: flex; align-items: center; gap: 8px;
   }
   .section-title .cnt { color: var(--blue); }
+  .section-title .right { margin-left: auto; }
+  .csvbtn {
+    border: 1px solid var(--line); background: var(--card); color: #444f5e;
+    font-size: 12px; padding: 4px 11px; border-radius: 8px; cursor: pointer;
+  }
+  .csvbtn:hover { border-color: var(--blue); color: var(--blue); }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
     transition: border-color .15s;
   }
   .card:hover { border-color: var(--blue); }
-  .row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .row1 { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
   .code {
     font-size: 19px; font-weight: 800; color: var(--blue);
     font-family: "Consolas", monospace; letter-spacing: 1px;
@@ -70,23 +82,37 @@
     background: #eef3fe; color: var(--blue-dark); font-weight: 600;
   }
   .name { font-size: 16px; font-weight: 600; }
-  .copy {
-    margin-left: auto; border: 1px solid var(--line); background: #f8fafc;
+  .actions { margin-left: auto; display: flex; gap: 6px; }
+  .iconbtn {
+    border: 1px solid var(--line); background: #f8fafc;
     font-size: 12px; padding: 4px 10px; border-radius: 8px; cursor: pointer; color: #444f5e;
   }
-  .copy:hover { border-color: var(--blue); color: var(--blue); }
+  .iconbtn:hover { border-color: var(--blue); color: var(--blue); }
+  .iconbtn.faved { color: #e8a100; border-color: #f2cf78; background: #fff9e8; }
   .path { font-size: 12.5px; color: #7b8494; margin-top: 6px; line-height: 1.6; }
   .path b { color: #4a5568; font-weight: 600; }
+  .oldnew { margin-top: 7px; font-size: 12.5px; color: #4a5568; }
+  .oldnew .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px;
+    border-radius: 20px; background: #eef7ee; color: #2b7a3d; margin-right: 6px;
+  }
+  .oldnew .tag.diff { background: #fdf0e7; color: #c05621; }
+  .oldhit {
+    margin-top: 7px; font-size: 12.5px; color: #c05621; background: #fdf6f0;
+    border: 1px solid #f5dcc8; border-radius: 8px; padding: 5px 9px; display: inline-block;
+  }
   .chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     font-size: 12.5px; background: #f1f5fb; border: 1px solid #e2e9f5;
     padding: 3px 9px; border-radius: 8px; color: #3d4a5c;
   }
   .chip mark { background: #ffe66b; padding: 0 1px; border-radius: 2px; }
+  .chip.clickable { cursor: pointer; }
+  .chip.clickable:hover { border-color: var(--blue); color: var(--blue); }
   .more { font-size: 12px; color: var(--blue); }
   .detail { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 10px; display: none; }
   .detail.open { display: block; }
-  .detail h4 { margin: 0 0 6px; font-size: 12.5px; color: #6b7684; font-weight: 600; }
+  .detail h4 { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
   .children a {
     display: block; font-size: 13.5px; padding: 5px 4px; color: var(--text);
     text-decoration: none; border-radius: 6px;
@@ -100,26 +126,53 @@
   .toast {
     position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
     background: #222c3a; color: #fff; padding: 9px 18px; border-radius: 30px;
-    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .25s;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 20;
   }
   .toast.show { opacity: 1; }
+  /* 분류 탐색 트리 */
+  .tree { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-top: 16px; }
+  .tree ul { list-style: none; margin: 0; padding-left: 18px; }
+  .tree > ul { padding-left: 2px; }
+  .tnode { padding: 2px 0; }
+  .trow {
+    display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 8px; cursor: pointer;
+    font-size: 14px;
+  }
+  .trow:hover { background: #f1f5fb; }
+  .tw { width: 16px; text-align: center; color: var(--muted); font-size: 11px; flex-shrink: 0; }
+  .tcode { font-family: "Consolas", monospace; font-weight: 700; color: var(--blue); }
+  .tcount { font-size: 11.5px; color: #9aa3b0; }
+  .tgo {
+    margin-left: auto; font-size: 11.5px; color: var(--muted); border: 1px solid var(--line);
+    border-radius: 7px; padding: 2px 8px; background: #f8fafc;
+  }
+  .tgo:hover { color: var(--blue); border-color: var(--blue); }
 </style>
 </head>
 <body>
 <header>
   <h1>산업분류코드 검색</h1>
-  <p>한국표준산업분류(KSIC) 11차 · 통계청 분류포털 데이터 기반</p>
+  <p>한국표준산업분류(KSIC) 11차 · 통계청 분류포털 데이터 기반 · 10차 신구연계 지원</p>
 </header>
 
 <div class="wrap">
   <div class="searchbox">
-    <input id="q" type="search" placeholder="제조 물품·업종을 입력하세요 (예: 빵, 아스팔트, 플라스틱 파이프)" autofocus autocomplete="off" />
+    <input id="q" type="search" placeholder="제조 물품·업종·코드 입력 (예: 빵, 아스팔트, 24111)" autofocus autocomplete="off" />
     <button onclick="runSearch()">검색</button>
   </div>
-  <div class="hint" id="hint">데이터 불러오는 중…</div>
-  <div id="results"><div class="loading">데이터를 불러오고 있습니다…</div></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-search" onclick="switchTab('search')">코드 검색</button>
+    <button class="tab" id="tab-browse" onclick="switchTab('browse')">분류 탐색</button>
+  </div>
+  <div id="panel-search">
+    <div class="hint" id="hint">데이터 불러오는 중…</div>
+    <div id="results"><div class="loading">데이터를 불러오고 있습니다…</div></div>
+  </div>
+  <div id="panel-browse" style="display:none;">
+    <div class="tree" id="treeroot"></div>
+  </div>
   <footer>
-    출처: 통계청 통계분류포털(kssc.kostat.go.kr) 한국표준산업분류 11차<br/>
+    출처: 통계청 통계분류포털(kssc.kostat.go.kr) 한국표준산업분류 11차 (10차 연계 포함)<br/>
     본 검색 결과는 참고용이며, 정확한 분류는 통계청 분류포털에서 확인하세요.
   </footer>
 </div>
@@ -132,6 +185,10 @@ let CHILDREN = new Map();   // code -> [child codes]
 let TERMS = [];             // [{code, term, norm}]
 let CODE_TERMS = new Map(); // code -> [terms]
 let NAME_INDEX = [];        // [{code, norm, level}]
+let NEW2OLD = new Map();    // 11차 code -> [{old, oldName}]
+let OLD2NEW = new Map();    // 10차 code -> [11차 codes]
+let lastResults = [];
+let lastQuery = '';
 
 const norm = (s) => s.toLowerCase().replace(/[\s,·.\-()/;'"&]/g, '');
 
@@ -155,10 +212,22 @@ async function loadData() {
     if (!CODE_TERMS.has(code)) CODE_TERMS.set(code, []);
     CODE_TERMS.get(code).push(term);
   }
+  for (const [nw, old, oldName] of (data.oldnew || [])) {
+    if (!NEW2OLD.has(nw)) NEW2OLD.set(nw, []);
+    NEW2OLD.get(nw).push({ old, oldName });
+    if (!OLD2NEW.has(old)) OLD2NEW.set(old, []);
+    if (!OLD2NEW.get(old).includes(nw)) OLD2NEW.get(old).push(nw);
+  }
   document.getElementById('hint').textContent =
-    `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 검색 가능`;
-  document.getElementById('results').innerHTML =
-    '<div class="empty">물품명이나 업종명을 입력하면<br/>알맞은 산업분류코드를 찾아드립니다.</div>';
+    `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 · 10차 연계 ${NEW2OLD.size.toLocaleString()}개 코드`;
+  renderTree();
+  const urlQ = new URLSearchParams(location.search).get('q');
+  if (urlQ) {
+    document.getElementById('q').value = urlQ;
+    runSearch();
+  } else {
+    renderHome();
+  }
 }
 
 function pathOf(code) {
@@ -175,21 +244,28 @@ function search(query) {
   const qn = norm(query);
   if (!qn) return null;
   const tokens = query.trim().toLowerCase().split(/\s+/).map(norm).filter(t => t.length >= 1);
-  const scores = new Map(); // code -> {score, terms:Set}
+  const scores = new Map(); // code -> {score, terms:Set, oldHits:Set}
 
-  const add = (code, score, term) => {
+  const add = (code, score, term, oldHit) => {
     let e = scores.get(code);
-    if (!e) { e = { score: 0, terms: new Set() }; scores.set(code, e); }
+    if (!e) { e = { score: 0, terms: new Set(), oldHits: new Set() }; scores.set(code, e); }
     if (score > e.score) e.score = score;
     if (term) e.terms.add(term);
+    if (oldHit) e.oldHits.add(oldHit);
   };
 
-  // 1) 코드 직접 검색
+  // 1) 코드 직접 검색 (11차)
   if (/^[0-9]{2,5}$/.test(qn) || /^[a-u]$/.test(qn)) {
     const up = qn.toUpperCase();
     for (const node of NODES.values()) {
       if (node.code === up) add(node.code, 100, null);
       else if (node.code.startsWith(up)) add(node.code, 90, null);
+    }
+    // 1-1) 10차(구) 코드로 검색 → 대응하는 11차 코드 제시
+    if (/^[0-9]{5}$/.test(qn) && OLD2NEW.has(qn)) {
+      for (const nw of OLD2NEW.get(qn)) {
+        if (nw !== qn) add(nw, 95, null, qn);
+      }
     }
   }
 
@@ -214,14 +290,14 @@ function search(query) {
   }
 
   const list = [...scores.entries()]
-    .map(([code, e]) => ({ code, score: e.score, terms: [...e.terms], node: NODES.get(code) }))
+    .map(([code, e]) => ({ code, score: e.score, terms: [...e.terms], oldHits: [...e.oldHits], node: NODES.get(code) }))
     .filter(r => r.node)
     .sort((a, b) => b.score - a.score || b.node.level - a.node.level || a.code.localeCompare(b.code));
   return list.slice(0, 80);
 }
 
 function esc(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 function highlight(term, query) {
   const raw = query.trim();
@@ -231,6 +307,17 @@ function highlight(term, query) {
   return esc(term.slice(0, i)) + '<mark>' + esc(term.slice(i, i + raw.length)) + '</mark>' + esc(term.slice(i + raw.length));
 }
 
+function oldnewHTML(code) {
+  const olds = NEW2OLD.get(code);
+  if (!olds || !olds.length) return '';
+  const same = olds.length === 1 && olds[0].old === code;
+  if (same) return `<div class="oldnew"><span class="tag">10차 동일</span>구 분류(10차)에서도 같은 코드입니다.</div>`;
+  const items = olds.map(o =>
+    o.old === code ? `${esc(o.old)} (동일)` : `<b>${esc(o.old)}</b> ${esc(o.oldName)}`
+  ).join(' · ');
+  return `<div class="oldnew"><span class="tag diff">10차 연계</span>${items}</div>`;
+}
+
 function cardHTML(r, query) {
   const p = pathOf(r.code);
   const crumb = p.map((n, i) =>
@@ -238,26 +325,33 @@ function cardHTML(r, query) {
   ).join(' &rsaquo; ');
   const chips = r.terms.slice(0, 6).map(t => `<span class="chip">${highlight(t, query)}</span>`).join('');
   const moreCnt = r.terms.length > 6 ? `<span class="chip more">+${r.terms.length - 6}</span>` : '';
+  const oldHit = (r.oldHits && r.oldHits.length)
+    ? `<div class="oldhit">구 분류(10차) ${esc(r.oldHits[0])} 에 해당하는 현행(11차) 코드입니다.</div>` : '';
+  const faved = isFav(r.code);
   return `
   <div class="card" data-code="${r.code}" onclick="toggleDetail(event, '${r.code}')">
     <div class="row1">
       <span class="code">${esc(r.code)}</span>
       <span class="lv">${LV_NAME[r.node.level]}</span>
       <span class="name">${esc(r.node.name)}</span>
-      <button class="copy" onclick="copyCode(event, '${r.code}')">코드 복사</button>
+      <span class="actions">
+        <button class="iconbtn ${faved ? 'faved' : ''}" onclick="toggleFav(event, '${r.code}')">${faved ? '★' : '☆'}</button>
+        <button class="iconbtn" onclick="copyCode(event, '${r.code}')">코드 복사</button>
+      </span>
     </div>
     <div class="path">${crumb}</div>
+    ${r.node.level === 5 ? oldnewHTML(r.code) : ''}
+    ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
     <div class="detail" id="detail-${r.code}"></div>
   </div>`;
 }
 
 function toggleDetail(ev, code) {
-  if (ev.target.closest('.copy')) return;
+  if (ev.target.closest('.iconbtn')) return;
   const el = document.getElementById('detail-' + code);
   if (!el) return;
   if (el.classList.contains('open')) { el.classList.remove('open'); return; }
-  const node = NODES.get(code);
   let html = '';
   const kids = CHILDREN.get(code) || [];
   if (kids.length) {
@@ -278,6 +372,7 @@ function toggleDetail(ev, code) {
 }
 
 function searchCode(code) {
+  switchTab('search');
   const input = document.getElementById('q');
   input.value = code;
   runSearch();
@@ -298,21 +393,155 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
 }
 
+/* ---------- 즐겨찾기 / 최근 검색 ---------- */
+function getLS(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
+function setLS(key, v) { localStorage.setItem(key, JSON.stringify(v)); }
+function isFav(code) { return getLS('ksic_fav').includes(code); }
+function toggleFav(ev, code) {
+  ev.stopPropagation();
+  let favs = getLS('ksic_fav');
+  if (favs.includes(code)) {
+    favs = favs.filter(c => c !== code);
+    showToast('즐겨찾기 해제');
+  } else {
+    favs.unshift(code);
+    favs = favs.slice(0, 30);
+    showToast('즐겨찾기 추가 ★');
+  }
+  setLS('ksic_fav', favs);
+  const q = document.getElementById('q').value.trim();
+  if (q) runSearch(); else renderHome();
+}
+function saveRecent(query) {
+  let rec = getLS('ksic_recent').filter(r => r !== query);
+  rec.unshift(query);
+  setLS('ksic_recent', rec.slice(0, 10));
+}
+
+function renderHome() {
+  const resEl = document.getElementById('results');
+  const rec = getLS('ksic_recent');
+  const favs = getLS('ksic_fav').filter(c => NODES.has(c));
+  let html = '';
+  if (rec.length) {
+    html += `<div class="section-title">최근 검색</div><div class="chips">` +
+      rec.map(r => `<span class="chip clickable" onclick="quickSearch('${esc(r).replace(/'/g, "\\'")}')">${esc(r)}</span>`).join('') +
+      `</div>`;
+  }
+  if (favs.length) {
+    html += `<div class="section-title">즐겨찾기 <span class="cnt">${favs.length}</span></div>`;
+    html += favs.map(c => cardHTML({ code: c, score: 0, terms: [], oldHits: [], node: NODES.get(c) }, '')).join('');
+  }
+  if (!html) {
+    html = '<div class="empty">물품명이나 업종명을 입력하면<br/>알맞은 산업분류코드를 찾아드립니다.<br/><br/>구 분류(10차) 5자리 코드를 입력하면<br/>현행 11차 코드로 변환해드립니다.</div>';
+  }
+  resEl.innerHTML = html;
+}
+
+function quickSearch(q) {
+  document.getElementById('q').value = q;
+  runSearch();
+}
+
+/* ---------- CSV 내보내기 ---------- */
+function exportCSV() {
+  if (!lastResults.length) return;
+  const rows = [['코드', '수준', '분류명', '전체경로', '10차연계', '매칭색인어']];
+  for (const r of lastResults) {
+    const olds = (NEW2OLD.get(r.code) || []).map(o => o.old + (o.old === r.code ? '(동일)' : ' ' + o.oldName)).join('; ');
+    rows.push([
+      r.code, LV_NAME[r.node.level], r.node.name,
+      pathOf(r.code).map(n => n.code + ' ' + n.name).join(' > '),
+      r.node.level === 5 ? olds : '',
+      r.terms.slice(0, 10).join('; '),
+    ]);
+  }
+  const csv = '﻿' + rows.map(row =>
+    row.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')
+  ).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ksic_${lastQuery || 'results'}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('CSV 다운로드');
+}
+
+/* ---------- 분류 탐색 트리 ---------- */
+function switchTab(tab) {
+  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
+  document.getElementById('tab-browse').classList.toggle('active', tab === 'browse');
+  document.getElementById('panel-search').style.display = tab === 'search' ? '' : 'none';
+  document.getElementById('panel-browse').style.display = tab === 'browse' ? '' : 'none';
+}
+
+function countLeaves(code) {
+  const kids = CHILDREN.get(code);
+  if (!kids || !kids.length) return 1;
+  return kids.reduce((a, k) => a + countLeaves(k), 0);
+}
+
+function renderTree() {
+  const roots = [...NODES.values()].filter(n => n.level === 1).map(n => n.code);
+  document.getElementById('treeroot').innerHTML =
+    '<ul>' + roots.map(c => treeNodeHTML(c)).join('') + '</ul>';
+}
+
+function treeNodeHTML(code) {
+  const n = NODES.get(code);
+  const kids = CHILDREN.get(code) || [];
+  const hasKids = kids.length > 0;
+  return `<li class="tnode" id="tn-${code}">
+    <div class="trow" onclick="toggleTree('${code}')">
+      <span class="tw" id="tw-${code}">${hasKids ? '▶' : '·'}</span>
+      <span class="tcode">${esc(code)}</span>
+      <span>${esc(n.name)}</span>
+      ${hasKids ? `<span class="tcount">${countLeaves(code)}</span>` : ''}
+      <button class="tgo" onclick="event.stopPropagation();searchCode('${code}')">상세</button>
+    </div>
+    <div id="tc-${code}" style="display:none;"></div>
+  </li>`;
+}
+
+function toggleTree(code) {
+  const kids = CHILDREN.get(code) || [];
+  if (!kids.length) { searchCode(code); return; }
+  const box = document.getElementById('tc-' + code);
+  const tw = document.getElementById('tw-' + code);
+  if (box.style.display === 'none') {
+    if (!box.innerHTML) box.innerHTML = '<ul>' + kids.map(k => treeNodeHTML(k)).join('') + '</ul>';
+    box.style.display = '';
+    tw.textContent = '▼';
+  } else {
+    box.style.display = 'none';
+    tw.textContent = '▶';
+  }
+}
+
+/* ---------- 검색 실행 ---------- */
 function runSearch() {
   const query = document.getElementById('q').value;
   const resEl = document.getElementById('results');
   const list = search(query);
   if (list === null) {
-    resEl.innerHTML = '<div class="empty">물품명이나 업종명을 입력하면<br/>알맞은 산업분류코드를 찾아드립니다.</div>';
+    lastResults = []; lastQuery = '';
+    history.replaceState(null, '', location.pathname);
+    renderHome();
     return;
   }
+  lastResults = list;
+  lastQuery = query.trim();
+  history.replaceState(null, '', location.pathname + '?q=' + encodeURIComponent(lastQuery));
   if (!list.length) {
     resEl.innerHTML = '<div class="empty">검색 결과가 없습니다.<br/>다른 단어(유의어)나 더 짧은 키워드로 검색해보세요.</div>';
     return;
   }
+  saveRecent(lastQuery);
   const strong = list.filter(r => r.score >= 85);
   const similar = list.filter(r => r.score < 85);
-  let html = '';
+  let html = `<div class="section-title">검색 결과 <span class="cnt">${list.length}</span>
+    <span class="right"><button class="csvbtn" onclick="exportCSV()">CSV 저장</button></span></div>`;
   if (strong.length) {
     html += `<div class="section-title">정확 일치 <span class="cnt">${strong.length}</span></div>`;
     html += strong.map(r => cardHTML(r, query)).join('');

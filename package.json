@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "crawl": "node scripts/crawl-tree.js && node scripts/crawl-index.js",
+    "crawl": "node scripts/crawl-tree.js && node scripts/crawl-index.js && node scripts/crawl-oldnew.js",
     "build-data": "node scripts/build-data.js"
   },
   "license": "ISC",
