@@ -1,0 +1,16 @@
+{
+  "name": "ksic-search",
+  "version": "1.0.0",
+  "description": "한국표준산업분류(KSIC) 코드 검색 웹앱",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "crawl": "node scripts/crawl-tree.js && node scripts/crawl-index.js",
+    "build-data": "node scripts/build-data.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "compression": "^1.7.5",
+    "express": "^5.2.1"
+  }
+}

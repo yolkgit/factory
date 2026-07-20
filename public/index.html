@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>산업분류코드 검색 — KSIC 11차</title>
+<style>
+  :root {
+    --blue: #256ef4;
+    --blue-dark: #1a55c4;
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --line: #e2e7ef;
+    --text: #1c2430;
+    --muted: #6b7684;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: linear-gradient(135deg, #1a55c4, #256ef4);
+    color: #fff;
+    padding: 26px 16px 74px;
+    text-align: center;
+  }
+  header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+  header p { margin: 8px 0 0; font-size: 13px; opacity: .85; }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 0 14px 60px; }
+  .searchbox {
+    position: sticky; top: 10px; z-index: 5;
+    margin-top: -46px;
+    display: flex; gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: 0 6px 24px rgba(20, 40, 90, .12);
+  }
+  .searchbox input {
+    flex: 1; border: 0; outline: 0; font-size: 17px; padding: 8px 6px;
+    background: transparent;
+  }
+  .searchbox button {
+    border: 0; background: var(--blue); color: #fff; font-size: 15px;
+    border-radius: 10px; padding: 0 18px; cursor: pointer;
+  }
+  .hint { font-size: 12.5px; color: #6b7684; margin: 10px 4px 0; }
+  .section-title {
+    margin: 26px 4px 10px; font-size: 14px; font-weight: 700; color: #444f5e;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .cnt { color: var(--blue); }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: var(--blue); }
+  .row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .code {
+    font-size: 19px; font-weight: 800; color: var(--blue);
+    font-family: "Consolas", monospace; letter-spacing: 1px;
+  }
+  .lv {
+    font-size: 11px; padding: 2px 7px; border-radius: 20px;
+    background: #eef3fe; color: var(--blue-dark); font-weight: 600;
+  }
+  .name { font-size: 16px; font-weight: 600; }
+  .copy {
+    margin-left: auto; border: 1px solid var(--line); background: #f8fafc;
+    font-size: 12px; padding: 4px 10px; border-radius: 8px; cursor: pointer; color: #444f5e;
+  }
+  .copy:hover { border-color: var(--blue); color: var(--blue); }
+  .path { font-size: 12.5px; color: #7b8494; margin-top: 6px; line-height: 1.6; }
+  .path b { color: #4a5568; font-weight: 600; }
+  .chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 12.5px; background: #f1f5fb; border: 1px solid #e2e9f5;
+    padding: 3px 9px; border-radius: 8px; color: #3d4a5c;
+  }
+  .chip mark { background: #ffe66b; padding: 0 1px; border-radius: 2px; }
+  .more { font-size: 12px; color: var(--blue); }
+  .detail { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 10px; display: none; }
+  .detail.open { display: block; }
+  .detail h4 { margin: 0 0 6px; font-size: 12.5px; color: #6b7684; font-weight: 600; }
+  .children a {
+    display: block; font-size: 13.5px; padding: 5px 4px; color: var(--text);
+    text-decoration: none; border-radius: 6px;
+  }
+  .children a:hover { background: #f1f5fb; color: var(--blue); }
+  .empty {
+    text-align: center; color: #8a94a3; padding: 46px 0 20px; font-size: 14.5px; line-height: 1.8;
+  }
+  .loading { text-align: center; color: #8a94a3; padding: 40px 0; }
+  footer { text-align: center; font-size: 11.5px; color: #9aa3b0; padding: 30px 0 40px; }
+  .toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
+    background: #222c3a; color: #fff; padding: 9px 18px; border-radius: 30px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>산업분류코드 검색</h1>
+  <p>한국표준산업분류(KSIC) 11차 · 통계청 분류포털 데이터 기반</p>
+</header>
+
+<div class="wrap">
+  <div class="searchbox">
+    <input id="q" type="search" placeholder="제조 물품·업종을 입력하세요 (예: 빵, 아스팔트, 플라스틱 파이프)" autofocus autocomplete="off" />
+    <button onclick="runSearch()">검색</button>
+  </div>
+  <div class="hint" id="hint">데이터 불러오는 중…</div>
+  <div id="results"><div class="loading">데이터를 불러오고 있습니다…</div></div>
+  <footer>
+    출처: 통계청 통계분류포털(kssc.kostat.go.kr) 한국표준산업분류 11차<br/>
+    본 검색 결과는 참고용이며, 정확한 분류는 통계청 분류포털에서 확인하세요.
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LV_NAME = { 1: '대분류', 2: '중분류', 3: '소분류', 4: '세분류', 5: '세세분류' };
+let NODES = new Map();      // code -> {code,name,level,parent}
+let CHILDREN = new Map();   // code -> [child codes]
+let TERMS = [];             // [{code, term, norm}]
+let CODE_TERMS = new Map(); // code -> [terms]
+let NAME_INDEX = [];        // [{code, norm, level}]
+
+const norm = (s) => s.toLowerCase().replace(/[\s,·.\-()/;'"&]/g, '');
+
+async function loadData() {
+  const res = await fetch('ksic-data.json');
+  const data = await res.json();
+  for (const [code, name, level, parent] of data.tree) {
+    NODES.set(code, { code, name, level, parent: parent || null });
+    NAME_INDEX.push({ code, norm: norm(name), level });
+  }
+  for (const node of NODES.values()) {
+    if (node.parent) {
+      if (!CHILDREN.has(node.parent)) CHILDREN.set(node.parent, []);
+      CHILDREN.get(node.parent).push(node.code);
+    }
+  }
+  for (const arr of CHILDREN.values()) arr.sort();
+  for (const [code, term] of data.terms) {
+    const t = { code, term, norm: norm(term) };
+    TERMS.push(t);
+    if (!CODE_TERMS.has(code)) CODE_TERMS.set(code, []);
+    CODE_TERMS.get(code).push(term);
+  }
+  document.getElementById('hint').textContent =
+    `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 검색 가능`;
+  document.getElementById('results').innerHTML =
+    '<div class="empty">물품명이나 업종명을 입력하면<br/>알맞은 산업분류코드를 찾아드립니다.</div>';
+}
+
+function pathOf(code) {
+  const parts = [];
+  let cur = NODES.get(code);
+  while (cur) {
+    parts.unshift(cur);
+    cur = cur.parent ? NODES.get(cur.parent) : null;
+  }
+  return parts;
+}
+
+function search(query) {
+  const qn = norm(query);
+  if (!qn) return null;
+  const tokens = query.trim().toLowerCase().split(/\s+/).map(norm).filter(t => t.length >= 1);
+  const scores = new Map(); // code -> {score, terms:Set}
+
+  const add = (code, score, term) => {
+    let e = scores.get(code);
+    if (!e) { e = { score: 0, terms: new Set() }; scores.set(code, e); }
+    if (score > e.score) e.score = score;
+    if (term) e.terms.add(term);
+  };
+
+  // 1) 코드 직접 검색
+  if (/^[0-9]{2,5}$/.test(qn) || /^[a-u]$/.test(qn)) {
+    const up = qn.toUpperCase();
+    for (const node of NODES.values()) {
+      if (node.code === up) add(node.code, 100, null);
+      else if (node.code.startsWith(up)) add(node.code, 90, null);
+    }
+  }
+
+  // 2) 색인어 검색 (세세분류 코드로 연결됨)
+  for (const t of TERMS) {
+    let s = 0;
+    if (t.norm === qn) s = 100;
+    else if (t.norm.startsWith(qn)) s = 88;
+    else if (t.norm.includes(qn)) s = 74;
+    else if (qn.length >= 2 && t.norm.length >= 2 && qn.includes(t.norm)) s = 58;
+    else if (tokens.length > 1 && tokens.every(tok => t.norm.includes(tok))) s = 68;
+    if (s) add(t.code, s, t.term);
+  }
+
+  // 3) 분류항목명 검색 (모든 수준)
+  for (const n of NAME_INDEX) {
+    let s = 0;
+    if (n.norm === qn) s = 96;
+    else if (n.norm.includes(qn)) s = 76;
+    else if (tokens.length > 1 && tokens.every(tok => n.norm.includes(tok))) s = 66;
+    if (s) add(n.code, s, null);
+  }
+
+  const list = [...scores.entries()]
+    .map(([code, e]) => ({ code, score: e.score, terms: [...e.terms], node: NODES.get(code) }))
+    .filter(r => r.node)
+    .sort((a, b) => b.score - a.score || b.node.level - a.node.level || a.code.localeCompare(b.code));
+  return list.slice(0, 80);
+}
+
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function highlight(term, query) {
+  const raw = query.trim();
+  if (!raw) return esc(term);
+  const i = term.toLowerCase().indexOf(raw.toLowerCase());
+  if (i < 0) return esc(term);
+  return esc(term.slice(0, i)) + '<mark>' + esc(term.slice(i, i + raw.length)) + '</mark>' + esc(term.slice(i + raw.length));
+}
+
+function cardHTML(r, query) {
+  const p = pathOf(r.code);
+  const crumb = p.map((n, i) =>
+    (i === p.length - 1 ? `<b>${esc(n.code)} ${esc(n.name)}</b>` : `${esc(n.code)} ${esc(n.name)}`)
+  ).join(' &rsaquo; ');
+  const chips = r.terms.slice(0, 6).map(t => `<span class="chip">${highlight(t, query)}</span>`).join('');
+  const moreCnt = r.terms.length > 6 ? `<span class="chip more">+${r.terms.length - 6}</span>` : '';
+  return `
+  <div class="card" data-code="${r.code}" onclick="toggleDetail(event, '${r.code}')">
+    <div class="row1">
+      <span class="code">${esc(r.code)}</span>
+      <span class="lv">${LV_NAME[r.node.level]}</span>
+      <span class="name">${esc(r.node.name)}</span>
+      <button class="copy" onclick="copyCode(event, '${r.code}')">코드 복사</button>
+    </div>
+    <div class="path">${crumb}</div>
+    ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
+    <div class="detail" id="detail-${r.code}"></div>
+  </div>`;
+}
+
+function toggleDetail(ev, code) {
+  if (ev.target.closest('.copy')) return;
+  const el = document.getElementById('detail-' + code);
+  if (!el) return;
+  if (el.classList.contains('open')) { el.classList.remove('open'); return; }
+  const node = NODES.get(code);
+  let html = '';
+  const kids = CHILDREN.get(code) || [];
+  if (kids.length) {
+    html += `<h4>하위 분류 (${kids.length}개)</h4><div class="children">` +
+      kids.map(k => {
+        const kn = NODES.get(k);
+        return `<a href="#" onclick="event.preventDefault();event.stopPropagation();searchCode('${k}')">${esc(k)} · ${esc(kn.name)}</a>`;
+      }).join('') + '</div>';
+  }
+  const terms = CODE_TERMS.get(code) || [];
+  if (terms.length) {
+    html += `<h4 style="margin-top:8px;">이 코드의 색인어 전체 (${terms.length}개)</h4>
+      <div class="chips">${terms.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>`;
+  }
+  if (!html) html = '<h4>추가 정보가 없습니다.</h4>';
+  el.innerHTML = html;
+  el.classList.add('open');
+}
+
+function searchCode(code) {
+  const input = document.getElementById('q');
+  input.value = code;
+  runSearch();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function copyCode(ev, code) {
+  ev.stopPropagation();
+  navigator.clipboard.writeText(code).then(() => showToast(`코드 ${code} 복사됨`));
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function runSearch() {
+  const query = document.getElementById('q').value;
+  const resEl = document.getElementById('results');
+  const list = search(query);
+  if (list === null) {
+    resEl.innerHTML = '<div class="empty">물품명이나 업종명을 입력하면<br/>알맞은 산업분류코드를 찾아드립니다.</div>';
+    return;
+  }
+  if (!list.length) {
+    resEl.innerHTML = '<div class="empty">검색 결과가 없습니다.<br/>다른 단어(유의어)나 더 짧은 키워드로 검색해보세요.</div>';
+    return;
+  }
+  const strong = list.filter(r => r.score >= 85);
+  const similar = list.filter(r => r.score < 85);
+  let html = '';
+  if (strong.length) {
+    html += `<div class="section-title">정확 일치 <span class="cnt">${strong.length}</span></div>`;
+    html += strong.map(r => cardHTML(r, query)).join('');
+  }
+  if (similar.length) {
+    html += `<div class="section-title">비슷한 항목 <span class="cnt">${similar.length}</span></div>`;
+    html += similar.map(r => cardHTML(r, query)).join('');
+  }
+  resEl.innerHTML = html;
+}
+
+let debounceTimer;
+document.getElementById('q').addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(runSearch, 150);
+});
+document.getElementById('q').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') runSearch();
+});
+
+loadData().catch((e) => {
+  document.getElementById('results').innerHTML =
+    `<div class="empty">데이터 로딩에 실패했습니다.<br/>${esc(String(e))}</div>`;
+});
+</script>
+</body>
+</html>

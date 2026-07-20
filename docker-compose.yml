@@ -1,0 +1,10 @@
+services:
+  ksic-search:
+    build: .
+    container_name: ksic-search
+    restart: unless-stopped
+    ports:
+      - "3005:3000"
+    environment:
+      - PORT=3000
+      - TZ=Asia/Seoul
