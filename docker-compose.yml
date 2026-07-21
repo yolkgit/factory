@@ -10,3 +10,5 @@ services:
       - TZ=Asia/Seoul
       # 공장 조회 오픈API 인증키(data.go.kr 일반 인증키 Decoding). 없으면 공장조회 탭만 비활성.
       - FACTORY_API_KEY=${FACTORY_API_KEY:-}
+      # SEO 정식 사이트 주소(canonical/OG/sitemap). 미설정 시 접속 호스트 자동 사용.
+      - SITE_URL=${SITE_URL:-}
