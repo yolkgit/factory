@@ -22,6 +22,13 @@ if (missing.size) {
   console.warn('트리에 없는 색인어 코드:', [...missing].slice(0, 20).join(', '), `(${missing.size}종)`);
 }
 
+// 자동 업데이트 안전장치: 크롤 결과가 비정상(급감)이면 실패시켜 기존 데이터 유지.
+const leaves = tree.filter((n) => n.level === 5).length;
+if (tree.length < 1500 || leaves < 1000 || index.length < 20000) {
+  console.error(`검증 실패: 수집 데이터가 비정상적으로 적습니다 (tree ${tree.length}, 세세분류 ${leaves}, 색인어 ${index.length}). 기존 데이터를 유지합니다.`);
+  process.exit(1);
+}
+
 const out = {
   revision: '11차',
   crawledFrom: 'kssc.kostat.go.kr',

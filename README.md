@@ -59,9 +59,23 @@ npm start        # http://localhost:3000
 ## 데이터 갱신 (분류 개정 시)
 
 ```bash
-npm run crawl        # 통계청 사이트에서 트리 + 색인어 재수집 → data/
-npm run build-data   # data/ → public/ksic-data.json 병합
+npm run crawl        # 통계청에서 트리·색인어·신구연계·해설 재수집 → data/
+npm run build-all    # 업종코드·경비율 + 병합 → public/ksic-data.json
 ```
+
+### 반기 자동 업데이트 (서버)
+
+통계청 산업분류 자료(트리·색인어·신구연계·해설)를 1월·7월에 자동 재수집한다.
+`update.sh`가 node 컨테이너로 크롤·빌드 후 컨테이너를 재빌드하며, 크롤/검증 실패 시 기존 데이터를 복원한다.
+서버 cron 등록(예):
+
+```cron
+0 4 1 1,7 * cd ~/factory && ./update.sh >> update.log 2>&1
+```
+
+경비율(국세청)·산재요율(고용부)·중소기업 기준(법령)은 파일·PDF 기반 상수라 자동 대상이 아니며,
+개정 시 각 원본을 받아 `data/`의 xlsx 교체(경비율/업종코드) 또는 `public/index.html`·`codepage.js`의
+상수 갱신(산재/중소기업) 후 `npm run build-all`로 반영한다.
 
 ## 배포
 

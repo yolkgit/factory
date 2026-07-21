@@ -1,2 +1,5 @@
 node_modules/
 *.log
+# 서버 자동 업데이트 산출물
+data.bak/
+*.bak
