@@ -48,6 +48,14 @@ npm start        # http://localhost:3000
 
 두 기능 모두 `FACTORY_API_KEY` 하나로 동작한다(각 데이터셋을 data.go.kr에서 활용신청하면 같은 키가 인증됨).
 
+## SEO / 코드별 페이지
+
+- `SITE_URL` 환경변수로 canonical/OG/sitemap 주소 설정(배포: https://factory.soritok.com).
+- `/code/:code` — 산업분류코드별 SSR 페이지(`codepage.js`). 전체 2,038개 분류를 서버렌더링(해설·색인어·경비율·산재·중소기업 기준·신구연계·업종코드·관련코드)하고 내부링크로 연결.
+- `/sitemap.xml` — 홈 + 전체 코드 페이지 자동 포함. `/robots.txt`(구글·네이버·AI 크롤러 허용), `/llms.txt`.
+- 홈 하단 소개·FAQ·대분류 링크는 크롤러용 정적 콘텐츠.
+- 주의: `codepage.js`의 SME/산재 상수는 `public/index.html`과 동일값 — 법령 개정 시 양쪽 갱신.
+
 ## 데이터 갱신 (분류 개정 시)
 
 ```bash

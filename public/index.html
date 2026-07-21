@@ -299,6 +299,12 @@
   .seo-about p { font-size: 13.5px; line-height: 1.75; margin: 0 0 6px; }
   .seo-about ul { margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.9; }
   .seo-about strong { color: var(--blue-dark); }
+  .seo-sections { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+  .seo-sections a {
+    font-size: 12.5px; color: #3d4a5c; text-decoration: none;
+    background: #f1f5fb; border: 1px solid #e2e9f5; border-radius: 8px; padding: 4px 9px;
+  }
+  .seo-sections a:hover { border-color: var(--blue); color: var(--blue); }
   footer { text-align: center; font-size: 11.5px; color: #9aa3b0; padding: 30px 0 40px; }
   .toast {
     position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
@@ -398,6 +404,8 @@
       <li><strong>중소기업 기준</strong> — 업종별 중소기업·소기업 매출 규모 기준</li>
       <li><strong>산업분류코드로 전국 기업 검색</strong> — 해당 업종의 등록공장·기업 목록 조회</li>
     </ul>
+    <h2>산업 대분류 바로가기</h2>
+    <nav class="seo-sections">%%SECTIONS%%</nav>
     <h2>자주 묻는 질문</h2>
     <h3>산업분류코드(업종코드)는 어떻게 조회하나요?</h3>
     <p>제조 물품명이나 업종명을 검색창에 입력하면 해당하는 KSIC 11차 세세분류 코드가 표시됩니다. 예: ‘빵’ → 10602 빵류 제조업.</p>

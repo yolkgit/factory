@@ -14,6 +14,7 @@ function siteUrl(req) {
   return `${proto}://${req.headers.host}`;
 }
 const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+const codepage = require('./codepage');
 
 // 한국산업단지공단 공장등록생산정보조회서비스 (data.go.kr 오픈API)
 // FACTORY_API_KEY: data.go.kr에서 발급받은 '일반 인증키(Decoding)'를 환경변수로 주입
@@ -173,16 +174,25 @@ app.get('/robots.txt', (req, res) => {
   );
 });
 
-// sitemap.xml
+// sitemap.xml — 홈 + 전체 산업분류코드 페이지
 app.get('/sitemap.xml', (req, res) => {
   const base = siteUrl(req);
   const today = new Date().toISOString().slice(0, 10);
-  res.type('application/xml').send(
-    `<?xml version="1.0" encoding="UTF-8"?>\n` +
-      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-      `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n` +
-      `</urlset>\n`
-  );
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+  xml += `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n`;
+  for (const code of codepage.CODES_ALL()) {
+    xml += `  <url><loc>${base}/code/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+  }
+  xml += `</urlset>\n`;
+  res.type('application/xml').send(xml);
+});
+
+// 산업분류코드별 SSR 페이지
+app.get('/code/:code', (req, res) => {
+  const code = String(req.params.code || '').trim();
+  const html = codepage.renderCodePage(code, siteUrl(req));
+  if (!html) return res.status(404).type('html').send('<meta charset="utf-8"><p>존재하지 않는 산업분류코드입니다. <a href="/">홈으로</a></p>');
+  res.type('html').send(html);
 });
 
 // llms.txt — AI/LLM이 사이트를 이해하도록 돕는 요약(신흥 표준)
@@ -209,7 +219,9 @@ app.get('/llms.txt', (req, res) => {
 
 // 정식 URL(canonical/OG)을 주입해 index.html 제공 — 크롤러가 정적 메타를 읽도록
 function serveIndex(req, res) {
-  res.type('html').send(INDEX_HTML.replace(/%%SITE_URL%%/g, siteUrl(req)));
+  res.type('html').send(
+    INDEX_HTML.replace(/%%SITE_URL%%/g, siteUrl(req)).replace('%%SECTIONS%%', codepage.sectionsNavHtml())
+  );
 }
 app.get('/', serveIndex);
 app.get('/index.html', serveIndex);
