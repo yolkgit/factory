@@ -8,6 +8,8 @@ const tree = JSON.parse(fs.readFileSync(path.join(dataDir, 'ksic-tree.json'), 'u
 const index = JSON.parse(fs.readFileSync(path.join(dataDir, 'ksic-index.json'), 'utf8'));
 const oldnewPath = path.join(dataDir, 'ksic-oldnew.json');
 const oldnew = fs.existsSync(oldnewPath) ? JSON.parse(fs.readFileSync(oldnewPath, 'utf8')) : [];
+const upjongPath = path.join(dataDir, 'upjong-map.json');
+const upjong = fs.existsSync(upjongPath) ? JSON.parse(fs.readFileSync(upjongPath, 'utf8')) : [];
 
 const codes = new Set(tree.map((n) => n.code));
 const missing = new Set();
@@ -22,6 +24,7 @@ const out = {
   tree: tree.map((n) => [n.code, n.name, n.level, n.parent]),
   terms: index.map((r) => [r.code, r.term]),
   oldnew: oldnew.map((r) => [r.new, r.old, r.oldName]),
+  upjong: upjong.map((r) => [r.u, r.un, r.k]),
 };
 
 const outPath = path.join(__dirname, '..', 'public', 'ksic-data.json');

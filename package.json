@@ -6,11 +6,15 @@
   "scripts": {
     "start": "node server.js",
     "crawl": "node scripts/crawl-tree.js && node scripts/crawl-index.js && node scripts/crawl-oldnew.js",
+    "build-upjong": "node scripts/build-upjong.js",
     "build-data": "node scripts/build-data.js"
   },
   "license": "ISC",
   "dependencies": {
     "compression": "^1.7.5",
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
   }
 }

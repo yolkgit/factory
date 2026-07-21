@@ -97,6 +97,10 @@
     border-radius: 20px; background: #eef7ee; color: #2b7a3d; margin-right: 6px;
   }
   .oldnew .tag.diff { background: #fdf0e7; color: #c05621; }
+  .oldnew .tag.nts { background: #f3eefe; color: #6b46c1; }
+  .oldnew .tag.sme { background: #e8f4fd; color: #1a6fa8; }
+  .smelaw { cursor: help; color: #9aa3b0; margin-left: 4px; }
+  .smenote { font-size: 11.5px; color: #8a94a3; margin-top: 3px; }
   .oldhit {
     margin-top: 7px; font-size: 12.5px; color: #c05621; background: #fdf6f0;
     border: 1px solid #f5dcc8; border-radius: 8px; padding: 5px 9px; display: inline-block;
@@ -152,12 +156,12 @@
 <body>
 <header>
   <h1>산업분류코드 검색</h1>
-  <p>한국표준산업분류(KSIC) 11차 · 통계청 분류포털 데이터 기반 · 10차 신구연계 지원</p>
+  <p>한국표준산업분류(KSIC) 11차 · 10차 신구연계 · 국세청 업종코드 연계 · 중소기업 기준 확인</p>
 </header>
 
 <div class="wrap">
   <div class="searchbox">
-    <input id="q" type="search" placeholder="제조 물품·업종·코드 입력 (예: 빵, 아스팔트, 24111)" autofocus autocomplete="off" />
+    <input id="q" type="search" placeholder="물품·업종·KSIC코드·국세청 업종코드 입력 (예: 빵, 아스팔트, 24111, 011000)" autofocus autocomplete="off" />
     <button onclick="runSearch()">검색</button>
   </div>
   <div class="tabs">
@@ -173,7 +177,8 @@
   </div>
   <footer>
     출처: 통계청 통계분류포털(kssc.kostat.go.kr) 한국표준산업분류 11차 (10차 연계 포함)<br/>
-    본 검색 결과는 참고용이며, 정확한 분류는 통계청 분류포털에서 확인하세요.
+    국세청 업종코드: 홈택스 업종코드-11차 표준산업분류 연계표 · 중소기업 기준: 중소기업기본법 시행령 별표1(2025.10.1)·별표3(2025.9.1)<br/>
+    본 검색 결과는 참고용이며, 정확한 분류·기준은 각 기관 공식 자료에서 확인하세요.
   </footer>
 </div>
 <div class="toast" id="toast"></div>
@@ -187,8 +192,53 @@ let CODE_TERMS = new Map(); // code -> [terms]
 let NAME_INDEX = [];        // [{code, norm, level}]
 let NEW2OLD = new Map();    // 11차 code -> [{old, oldName}]
 let OLD2NEW = new Map();    // 10차 code -> [11차 codes]
+let UPJONG_BY_K = new Map(); // KSIC5 -> [{u, un}]  국세청 업종코드
+let UPJONG_BY_U = new Map(); // 업종코드6 -> [{k, un}]
+let UPJONG_TERMS = [];       // [{u, un, k, norm}]
 let lastResults = [];
 let lastQuery = '';
+
+/* 중소기업기본법 시행령 별표1(중소기업, 개정 2025.10.1)·별표3(소기업, 개정 2025.9.1)
+   주된 업종별 평균매출액등 규모 기준(억원). 분류기호는 KSIC 대분류/중분류 기준. */
+const SME_BY_DIV = { // 중분류(2자리) 우선 적용
+  '17':1800,'24':1800,'28':1800,'14':1500,'15':1500,'32':1500,
+  '10':1200,'20':1200,'22':1200,'25':1200,'29':1200,'30':1200,'31':1200,
+  '12':1000,'13':1000,'16':1000,'19':1000,'26':1000,'33':1000,'36':1000,
+  '11':800,'18':800,'21':800,'23':800,'27':800,'34':600,'76':400,
+};
+const SME_BY_SEC = {
+  F:1200,G:1200,A:1000,B:1000,D:1000,H:1000,J:1000,
+  E:800,N:800,M:600,Q:600,R:600,S:600,I:400,K:400,L:400,P:400,
+};
+const SMALL_BY_DIV = {
+  '19':140,'24':140,
+  '10':120,'11':120,'14':120,'15':120,'20':120,'21':120,'23':120,'25':120,
+  '26':120,'28':120,'29':120,'30':120,'32':120,'36':120,
+  '12':80,'13':80,'16':80,'17':80,'18':80,'22':80,'27':80,'31':80,'33':80,
+  '34':15,
+};
+const SMALL_BY_SEC = {
+  D:120,H:100,K:100,A:80,B:80,F:80,G:60,J:50,E:40,L:40,
+  M:30,N:30,R:30,I:15,P:15,Q:15,S:15,
+};
+// 비고: 의자 제조 관련 특례 코드
+const SME_NOTES = {
+  '30393': '비고: 자동차용 신품 의자 제조업은 중소기업 기준 1,500억원 이하 적용',
+  '31202': '비고: 철도 차량용 의자 제조 부분은 중소기업 1,500억·소기업 120억 이하 적용',
+  '31322': '비고: 항공기용 의자 제조 부분은 중소기업 1,500억·소기업 120억 이하 적용',
+};
+function smeInfo(code) {
+  const p = pathOf(code);
+  if (!p.length) return null;
+  const sec = p[0].code;
+  const div = code.slice(0, 2);
+  if (sec === 'S' && div === '94') return null; // 협회 및 단체: 기준 제외
+  let sme = SME_BY_DIV[div]; if (sme === undefined) sme = SME_BY_SEC[sec];
+  let small = SMALL_BY_DIV[div]; if (small === undefined) small = SMALL_BY_SEC[sec];
+  if (code === '30393') sme = 1500;
+  if (sme === undefined && small === undefined) return null; // O, T, U 등 기준 없음
+  return { sme, small, note: SME_NOTES[code] || null };
+}
 
 const norm = (s) => s.toLowerCase().replace(/[\s,·.\-()/;'"&]/g, '');
 
@@ -218,8 +268,15 @@ async function loadData() {
     if (!OLD2NEW.has(old)) OLD2NEW.set(old, []);
     if (!OLD2NEW.get(old).includes(nw)) OLD2NEW.get(old).push(nw);
   }
+  for (const [u, un, k] of (data.upjong || [])) {
+    if (!UPJONG_BY_K.has(k)) UPJONG_BY_K.set(k, []);
+    UPJONG_BY_K.get(k).push({ u, un });
+    if (!UPJONG_BY_U.has(u)) UPJONG_BY_U.set(u, []);
+    UPJONG_BY_U.get(u).push({ k, un });
+    UPJONG_TERMS.push({ u, un, k, norm: norm(un) });
+  }
   document.getElementById('hint').textContent =
-    `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 · 10차 연계 ${NEW2OLD.size.toLocaleString()}개 코드`;
+    `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 · 10차 연계 · 국세청 업종코드 ${UPJONG_BY_U.size.toLocaleString()}개`;
   renderTree();
   const urlQ = new URLSearchParams(location.search).get('q');
   if (urlQ) {
@@ -244,14 +301,15 @@ function search(query) {
   const qn = norm(query);
   if (!qn) return null;
   const tokens = query.trim().toLowerCase().split(/\s+/).map(norm).filter(t => t.length >= 1);
-  const scores = new Map(); // code -> {score, terms:Set, oldHits:Set}
+  const scores = new Map(); // code -> {score, terms:Set, oldHits:Set, uHits:Set}
 
-  const add = (code, score, term, oldHit) => {
+  const add = (code, score, term, oldHit, uHit) => {
     let e = scores.get(code);
-    if (!e) { e = { score: 0, terms: new Set(), oldHits: new Set() }; scores.set(code, e); }
+    if (!e) { e = { score: 0, terms: new Set(), oldHits: new Set(), uHits: new Set() }; scores.set(code, e); }
     if (score > e.score) e.score = score;
     if (term) e.terms.add(term);
     if (oldHit) e.oldHits.add(oldHit);
+    if (uHit) e.uHits.add(uHit);
   };
 
   // 1) 코드 직접 검색 (11차)
@@ -268,6 +326,12 @@ function search(query) {
       }
     }
   }
+  // 1-2) 국세청 업종코드(6자리)로 검색 → 연계된 KSIC 제시
+  if (/^[0-9]{6}$/.test(qn) && UPJONG_BY_U.has(qn)) {
+    for (const { k, un } of UPJONG_BY_U.get(qn)) {
+      add(k, 98, null, null, qn + ' ' + un);
+    }
+  }
 
   // 2) 색인어 검색 (세세분류 코드로 연결됨)
   for (const t of TERMS) {
@@ -280,6 +344,15 @@ function search(query) {
     if (s) add(t.code, s, t.term);
   }
 
+  // 2-1) 국세청 업종명 검색 (연계 KSIC 코드로 연결)
+  for (const t of UPJONG_TERMS) {
+    let s = 0;
+    if (t.norm === qn) s = 82;
+    else if (t.norm.includes(qn)) s = 64;
+    else if (tokens.length > 1 && tokens.every(tok => t.norm.includes(tok))) s = 60;
+    if (s) add(t.k, s, '[국세청 ' + t.u + '] ' + t.un);
+  }
+
   // 3) 분류항목명 검색 (모든 수준)
   for (const n of NAME_INDEX) {
     let s = 0;
@@ -290,7 +363,7 @@ function search(query) {
   }
 
   const list = [...scores.entries()]
-    .map(([code, e]) => ({ code, score: e.score, terms: [...e.terms], oldHits: [...e.oldHits], node: NODES.get(code) }))
+    .map(([code, e]) => ({ code, score: e.score, terms: [...e.terms], oldHits: [...e.oldHits], uHits: [...e.uHits], node: NODES.get(code) }))
     .filter(r => r.node)
     .sort((a, b) => b.score - a.score || b.node.level - a.node.level || a.code.localeCompare(b.code));
   return list.slice(0, 80);
@@ -318,6 +391,27 @@ function oldnewHTML(code) {
   return `<div class="oldnew"><span class="tag diff">10차 연계</span>${items}</div>`;
 }
 
+function upjongHTML(code) {
+  const ups = UPJONG_BY_K.get(code);
+  if (!ups || !ups.length) return '';
+  const shown = ups.slice(0, 4).map(o =>
+    `<span class="chip clickable" title="${esc(o.un)} — 클릭하여 복사" onclick="event.stopPropagation();copyText('${o.u}')">${esc(o.u)} ${esc(o.un)}</span>`
+  ).join('');
+  const more = ups.length > 4 ? `<span class="chip more">+${ups.length - 4}</span>` : '';
+  return `<div class="oldnew"><span class="tag nts">국세청 업종코드</span></div><div class="chips" style="margin-top:4px;">${shown}${more}</div>`;
+}
+
+function smeHTML(code) {
+  const s = smeInfo(code);
+  if (!s) return '';
+  const parts = [];
+  if (s.sme !== undefined) parts.push(`중소기업 ${s.sme.toLocaleString()}억원 이하`);
+  if (s.small !== undefined) parts.push(`소기업 ${s.small.toLocaleString()}억원 이하`);
+  const note = s.note ? `<div class="smenote">${esc(s.note)}</div>` : '';
+  return `<div class="oldnew"><span class="tag sme">중소기업 기준</span>평균매출액 ${parts.join(' · ')}
+    <span class="smelaw" title="중소기업기본법 시행령 별표1(2025.10.1 개정)·별표3(2025.9.1 개정) 기준">ⓘ</span></div>${note}`;
+}
+
 function cardHTML(r, query) {
   const p = pathOf(r.code);
   const crumb = p.map((n, i) =>
@@ -325,8 +419,11 @@ function cardHTML(r, query) {
   ).join(' &rsaquo; ');
   const chips = r.terms.slice(0, 6).map(t => `<span class="chip">${highlight(t, query)}</span>`).join('');
   const moreCnt = r.terms.length > 6 ? `<span class="chip more">+${r.terms.length - 6}</span>` : '';
-  const oldHit = (r.oldHits && r.oldHits.length)
+  let oldHit = (r.oldHits && r.oldHits.length)
     ? `<div class="oldhit">구 분류(10차) ${esc(r.oldHits[0])} 에 해당하는 현행(11차) 코드입니다.</div>` : '';
+  if (r.uHits && r.uHits.length) {
+    oldHit += `<div class="oldhit">국세청 업종코드 ${esc(r.uHits[0])} 에 연계된 표준산업분류입니다.</div>`;
+  }
   const faved = isFav(r.code);
   return `
   <div class="card" data-code="${r.code}" onclick="toggleDetail(event, '${r.code}')">
@@ -340,7 +437,7 @@ function cardHTML(r, query) {
       </span>
     </div>
     <div class="path">${crumb}</div>
-    ${r.node.level === 5 ? oldnewHTML(r.code) : ''}
+    ${r.node.level === 5 ? oldnewHTML(r.code) + smeHTML(r.code) + upjongHTML(r.code) : ''}
     ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
     <div class="detail" id="detail-${r.code}"></div>
@@ -382,6 +479,9 @@ function searchCode(code) {
 function copyCode(ev, code) {
   ev.stopPropagation();
   navigator.clipboard.writeText(code).then(() => showToast(`코드 ${code} 복사됨`));
+}
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => showToast(`${text} 복사됨`));
 }
 
 let toastTimer;
@@ -433,7 +533,7 @@ function renderHome() {
     html += favs.map(c => cardHTML({ code: c, score: 0, terms: [], oldHits: [], node: NODES.get(c) }, '')).join('');
   }
   if (!html) {
-    html = '<div class="empty">물품명이나 업종명을 입력하면<br/>알맞은 산업분류코드를 찾아드립니다.<br/><br/>구 분류(10차) 5자리 코드를 입력하면<br/>현행 11차 코드로 변환해드립니다.</div>';
+    html = '<div class="empty">물품명이나 업종명을 입력하면<br/>알맞은 산업분류코드를 찾아드립니다.<br/><br/>구 분류(10차) 5자리 코드는 현행 11차 코드로,<br/>국세청 업종코드(6자리)는 연계된 표준산업분류로 변환해드립니다.</div>';
   }
   resEl.innerHTML = html;
 }
@@ -446,13 +546,18 @@ function quickSearch(q) {
 /* ---------- CSV 내보내기 ---------- */
 function exportCSV() {
   if (!lastResults.length) return;
-  const rows = [['코드', '수준', '분류명', '전체경로', '10차연계', '매칭색인어']];
+  const rows = [['코드', '수준', '분류명', '전체경로', '10차연계', '국세청업종코드', '중소기업기준(억원)', '소기업기준(억원)', '매칭색인어']];
   for (const r of lastResults) {
     const olds = (NEW2OLD.get(r.code) || []).map(o => o.old + (o.old === r.code ? '(동일)' : ' ' + o.oldName)).join('; ');
+    const ups = (UPJONG_BY_K.get(r.code) || []).map(o => o.u + ' ' + o.un).join('; ');
+    const s = r.node.level === 5 ? smeInfo(r.code) : null;
     rows.push([
       r.code, LV_NAME[r.node.level], r.node.name,
       pathOf(r.code).map(n => n.code + ' ' + n.name).join(' > '),
       r.node.level === 5 ? olds : '',
+      r.node.level === 5 ? ups : '',
+      s && s.sme !== undefined ? s.sme : '',
+      s && s.small !== undefined ? s.small : '',
       r.terms.slice(0, 10).join('; '),
     ]);
   }
