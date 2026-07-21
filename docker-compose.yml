@@ -4,7 +4,7 @@ services:
     container_name: ksic-search
     restart: unless-stopped
     ports:
-      - "3005:3000"
+      - "3007:3000"
     environment:
       - PORT=3000
       - TZ=Asia/Seoul

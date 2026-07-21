@@ -53,5 +53,5 @@ npm run build-data   # data/ → public/ksic-data.json 병합
 ## 배포
 
 ```bash
-docker compose up -d --build   # 호스트 포트 3005
+docker compose up -d --build   # 호스트 포트 3007
 ```
