@@ -99,6 +99,20 @@
   .oldnew .tag.diff { background: #fdf0e7; color: #c05621; }
   .oldnew .tag.nts { background: #f3eefe; color: #6b46c1; }
   .oldnew .tag.sme { background: #e8f4fd; color: #1a6fa8; }
+  .oldnew .tag.sanjae { background: #eaf6ee; color: #1f7a44; }
+  .permil { font-weight: 700; }
+  .sjlabel { color: #8a94a3; font-size: 12px; }
+  .uplist { margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
+  .uprow { font-size: 12.5px; color: #3d4a5c; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+  .upcode {
+    font-family: "Consolas", monospace; font-weight: 700; color: #6b46c1;
+    text-decoration: none; border-bottom: 1px dashed #b9a6e6;
+  }
+  .upcode:hover { background: #f3eefe; }
+  .upname { color: #4a5568; }
+  .grate { color: #1f7a44; font-size: 12px; }
+  .grate .gsub { color: #8a94a3; }
+  .upmore { font-size: 11.5px; color: #9aa3b0; }
   .smelaw { cursor: help; color: #9aa3b0; margin-left: 4px; }
   .smenote { font-size: 11.5px; color: #8a94a3; margin-top: 3px; }
   .engname { font-size: 12.5px; color: #8a94a3; margin-top: 3px; font-style: italic; }
@@ -186,7 +200,7 @@
 <body>
 <header>
   <h1>산업분류코드 검색</h1>
-  <p>KSIC 11차 · 분류 해설 · 10차 신구연계 · 국세청 업종코드 · 중소기업 기준</p>
+  <p>KSIC 11차 · 해설 · 10차 연계 · 국세청 업종코드/경비율 · 산재보험료율 · 중소기업 기준</p>
 </header>
 
 <div class="wrap">
@@ -207,7 +221,8 @@
   </div>
   <footer>
     출처: 통계청 통계분류포털(kssc.kostat.go.kr) 한국표준산업분류 11차 (10차 연계 포함)<br/>
-    국세청 업종코드: 홈택스 업종코드-11차 표준산업분류 연계표 · 중소기업 기준: 중소기업기본법 시행령 별표1(2025.10.1)·별표3(2025.9.1)<br/>
+    국세청 업종코드: 홈택스 연계표 · 경비율: 국세청 2025년 귀속 기준·단순경비율 · 산재보험료율: 고용노동부 2026년도 고시(사업종류 기준 근사)<br/>
+    중소기업 기준: 중소기업기본법 시행령 별표1(2025.10.1)·별표3(2025.9.1)<br/>
     본 검색 결과는 참고용이며, 정확한 분류·기준은 각 기관 공식 자료에서 확인하세요.
   </footer>
 </div>
@@ -227,7 +242,64 @@ let UPJONG_BY_U = new Map(); // 업종코드6 -> [{k, un}]
 let UPJONG_TERMS = [];       // [{u, un, k, norm}]
 let DESC = {};               // code -> {e: 영문명, d: 설명}
 let REFS_IN = new Map();      // code -> [codes that reference it in their 제외/설명]
+let GYEONGBI = {};           // 업종코드 -> [단순일반, 단순초과, 기준일반]
 let lastResults = [];
+
+/* 2026년도 사업종류별 산재보험료율(천분율 ‰) — 고용노동부 고시.
+   근로복지공단 '사업종류'는 KSIC와 별도 체계라 대분류(제조업은 중분류) 기준 근사 매핑.
+   정확한 사업종류·요율은 근로복지공단 사업종류 예시표를 따른다. */
+const SANJAE_MFG_BY_DIV = { // 제조업(C) 중분류 → 요율
+  '10':16,'11':16,'12':16,               // 식료품 제조업
+  '13':11,'14':11,'15':11,               // 섬유 및 섬유제품 제조업
+  '16':20,'17':20,                       // 목재 및 종이제품 제조업
+  '18':9,                                // 출판·인쇄·제본업
+  '20':13,'22':13,                       // 화학 및 고무제품 제조업
+  '19':7,'21':7,                         // 의약품·화장품·연탄·석유제품 제조업
+  '23':13,'25':13,'29':13,'30':13,'34':13, // 기계기구·금속·비금속광물제품 제조업
+  '24':10,                               // 금속제련업
+  '26':6,'27':6,'28':6,                  // 전기기계기구·정밀기구·전자제품 제조업
+  '31':24,                               // 선박건조 및 수리업(기타 운송장비 중 선박 기준)
+  '32':12,'33':12,                       // 수제품 및 기타제품 제조업
+};
+const SANJAE_BY_SEC = { // 대분류 → 요율 (제조업 C는 위 표 우선)
+  A:null, // 농·임·어업은 세부 분리 (아래 로직)
+  B:null, // 광업 세부 분리
+  C:13,   // fallback (중분류 미정 시)
+  D:7, E:7,               // 전기·가스·증기·수도
+  F:35,                   // 건설업
+  H:8,                    // 운수·창고 (철도·항공·창고 8 기준; 육상·수상 18은 근사 제외)
+  J:9,                    // 통신·정보통신
+  G:8, I:8,               // 도소매·음식·숙박
+  L:7,                    // 부동산 및 임대
+  N:8,                    // 시설관리 및 사업지원 서비스업
+  M:6, P:6, Q:6, R:6,     // 전문·보건·교육·여가관련 서비스업
+  K:5,                    // 금융 및 보험업
+  O:9,                    // 국가 및 지방자치단체
+  S:8, T:8, U:8,          // 기타의 각종사업
+};
+function sanjaeRate(code) {
+  const p = pathOf(code);
+  if (!p.length) return null;
+  const sec = p[0].code;
+  const div = code.slice(0, 2);
+  if (sec === 'A') { // 농·임·어업
+    if (div === '02') return { rate: 58, label: '임업' };
+    if (div === '03') return { rate: 27, label: '어업' };
+    return { rate: 20, label: '농업' };
+  }
+  if (sec === 'B') { // 광업
+    if (div === '05') return { rate: 185, label: '석탄광업 및 채석업' };
+    return { rate: 57, label: '석회석·금속·비금속·기타광업' };
+  }
+  if (sec === 'C') {
+    const r = SANJAE_MFG_BY_DIV[div];
+    if (r !== undefined) return { rate: r, label: '제조업', approx: true };
+    return { rate: 13, label: '제조업', approx: true };
+  }
+  const r = SANJAE_BY_SEC[sec];
+  if (r == null) return null;
+  return { rate: r, label: null, approx: sec === 'H' };
+}
 let lastQuery = '';
 
 /* 중소기업기본법 시행령 별표1(중소기업, 개정 2025.10.1)·별표3(소기업, 개정 2025.9.1)
@@ -301,6 +373,7 @@ async function loadData() {
     if (!OLD2NEW.get(old).includes(nw)) OLD2NEW.get(old).push(nw);
   }
   DESC = data.desc || {};
+  GYEONGBI = data.gyeongbi || {};
   // 해설 본문의 5자리 참조 코드로 역참조(누가 이 코드를 제외/참조로 안내하는가) 인덱스 구축
   for (const code in DESC) {
     const d = DESC[code].d;
@@ -449,14 +522,36 @@ function oldnewHTML(code) {
   return `<div class="oldnew"><span class="tag diff">10차 연계</span>${items}</div>`;
 }
 
+function pct(v) { return (v || v === 0) ? (Number.isInteger(v) ? v : v.toFixed(1)) + '%' : '-'; }
+
 function upjongHTML(code) {
   const ups = UPJONG_BY_K.get(code);
   if (!ups || !ups.length) return '';
-  const shown = ups.slice(0, 4).map(o =>
-    `<span class="chip clickable" title="${esc(o.un)} — 클릭하여 복사" onclick="event.stopPropagation();copyText('${o.u}')">${esc(o.u)} ${esc(o.un)}</span>`
-  ).join('');
-  const more = ups.length > 4 ? `<span class="chip more">+${ups.length - 4}</span>` : '';
-  return `<div class="oldnew"><span class="tag nts">국세청 업종코드</span></div><div class="chips" style="margin-top:4px;">${shown}${more}</div>`;
+  const rows = ups.slice(0, 5).map(o => {
+    const g = GYEONGBI[o.u];
+    let rate = '';
+    if (g) {
+      const simple = pct(g[0]) + (g[1] ? ` <span class="gsub">(초과 ${pct(g[1])})</span>` : '');
+      rate = `<span class="grate">단순 ${simple} · 기준 ${pct(g[2])}</span>`;
+    }
+    return `<div class="uprow">
+      <a href="#" class="upcode" title="업종코드 복사" onclick="event.preventDefault();event.stopPropagation();copyText('${o.u}')">${esc(o.u)}</a>
+      <span class="upname">${esc(o.un)}</span>${rate}</div>`;
+  }).join('');
+  const more = ups.length > 5 ? `<div class="upmore">외 ${ups.length - 5}개</div>` : '';
+  return `<div class="oldnew"><span class="tag nts">국세청 업종코드 · 경비율</span>
+    <span class="smelaw" title="종합소득세 추계신고용 단순경비율·기준경비율 (2025년 귀속, 국세청)">ⓘ</span></div>
+    <div class="uplist">${rows}${more}</div>`;
+}
+
+function sanjaeHTML(code) {
+  const s = sanjaeRate(code);
+  if (!s) return '';
+  const lbl = s.label ? ` <span class="sjlabel">(${esc(s.label)})</span>` : '';
+  const approx = s.approx ? ' 참고' : '';
+  return `<div class="oldnew"><span class="tag sanjae">산재보험료율</span>
+    ${s.rate}<span class="permil">‰</span> (1,000분의 ${s.rate})${lbl}
+    <span class="smelaw" title="2026년도 사업종류별 산재보험료율(고용노동부). 근로복지공단 사업종류는 KSIC와 별도 체계로, 대분류(제조업은 중분류) 기준 근사값입니다. 정확한 요율은 근로복지공단 사업종류 예시표에서 확인하세요.">${approx ? 'ⓘ참고' : 'ⓘ'}</span></div>`;
 }
 
 function relatedHTML(code) {
@@ -541,7 +636,7 @@ function cardHTML(r, query) {
       </span>
     </div>
     <div class="path">${crumb}</div>
-    ${r.node.level === 5 ? descHTML(r.code) + oldnewHTML(r.code) + smeHTML(r.code) + upjongHTML(r.code) : ''}
+    ${r.node.level === 5 ? descHTML(r.code) + oldnewHTML(r.code) + smeHTML(r.code) + sanjaeHTML(r.code) + upjongHTML(r.code) : ''}
     ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
     ${r.node.level === 5 || (CHILDREN.get(r.code) || []).length ? '<div class="detailhint">▸ 클릭하면 관련 분류·색인어를 볼 수 있습니다</div>' : ''}
@@ -653,11 +748,14 @@ function quickSearch(q) {
 /* ---------- CSV 내보내기 ---------- */
 function exportCSV() {
   if (!lastResults.length) return;
-  const rows = [['코드', '수준', '분류명', '영문명', '설명', '전체경로', '10차연계', '국세청업종코드', '중소기업기준(억원)', '소기업기준(억원)', '매칭색인어']];
+  const rows = [['코드', '수준', '분류명', '영문명', '설명', '전체경로', '10차연계', '국세청업종코드', '단순경비율(%)', '기준경비율(%)', '산재보험료율(‰)', '중소기업기준(억원)', '소기업기준(억원)', '매칭색인어']];
   for (const r of lastResults) {
     const olds = (NEW2OLD.get(r.code) || []).map(o => o.old + (o.old === r.code ? '(동일)' : ' ' + o.oldName)).join('; ');
-    const ups = (UPJONG_BY_K.get(r.code) || []).map(o => o.u + ' ' + o.un).join('; ');
+    const upList = UPJONG_BY_K.get(r.code) || [];
+    const ups = upList.map(o => o.u + ' ' + o.un).join('; ');
+    const gb = upList.map(o => GYEONGBI[o.u]).find(Boolean);
     const s = r.node.level === 5 ? smeInfo(r.code) : null;
+    const sj = r.node.level === 5 ? sanjaeRate(r.code) : null;
     const dd = DESC[r.code] || {};
     rows.push([
       r.code, LV_NAME[r.node.level], r.node.name,
@@ -666,6 +764,9 @@ function exportCSV() {
       pathOf(r.code).map(n => n.code + ' ' + n.name).join(' > '),
       r.node.level === 5 ? olds : '',
       r.node.level === 5 ? ups : '',
+      gb ? gb[0] : '',
+      gb ? gb[2] : '',
+      sj ? sj.rate : '',
       s && s.sme !== undefined ? s.sme : '',
       s && s.small !== undefined ? s.small : '',
       r.terms.slice(0, 10).join('; '),

@@ -12,6 +12,8 @@ const upjongPath = path.join(dataDir, 'upjong-map.json');
 const upjong = fs.existsSync(upjongPath) ? JSON.parse(fs.readFileSync(upjongPath, 'utf8')) : [];
 const descPath = path.join(dataDir, 'ksic-desc.json');
 const desc = fs.existsSync(descPath) ? JSON.parse(fs.readFileSync(descPath, 'utf8')) : {};
+const gyeongbiPath = path.join(dataDir, 'gyeongbi-map.json');
+const gyeongbi = fs.existsSync(gyeongbiPath) ? JSON.parse(fs.readFileSync(gyeongbiPath, 'utf8')) : {};
 
 const codes = new Set(tree.map((n) => n.code));
 const missing = new Set();
@@ -28,6 +30,7 @@ const out = {
   oldnew: oldnew.map((r) => [r.new, r.old, r.oldName]),
   upjong: upjong.map((r) => [r.u, r.un, r.k]),
   desc, // { code: { e: 영문명, d: 설명 } }
+  gyeongbi, // { 업종코드: [단순경비율일반, 단순경비율초과, 기준경비율일반] } (2025 귀속)
 };
 
 const outPath = path.join(__dirname, '..', 'public', 'ksic-data.json');
