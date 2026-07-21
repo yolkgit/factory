@@ -22,22 +22,23 @@ app.get('/api/factory', async (req, res) => {
     });
   }
   const { cmpnyNm = '', mainProductCn = '', rprsntvNm = '', adres = '', pageNo = '1', numOfRows = '20' } = req.query;
-  if (!cmpnyNm && !mainProductCn && !rprsntvNm && !adres) {
-    return res.status(400).json({ ok: false, reason: 'no_query', message: '검색어를 입력하세요.' });
+  // 이 오픈API는 회사명(cmpnyNm)을 필수 앵커로 요구한다(생산품·대표자·지역은 선택 필터).
+  if (!cmpnyNm) {
+    return res.status(400).json({ ok: false, reason: 'need_company', message: '회사명을 입력하세요. (공개 API는 회사명 기준으로 조회합니다)' });
   }
   const qs = new URLSearchParams({
     serviceKey: FACTORY_KEY,
     type: 'JSON',
     pageNo: String(pageNo),
     numOfRows: String(numOfRows),
+    cmpnyNm,
   });
-  if (cmpnyNm) qs.set('cmpnyNm', cmpnyNm);
   if (mainProductCn) qs.set('mainProductCn', mainProductCn);
   if (rprsntvNm) qs.set('rprsntvNm', rprsntvNm);
   if (adres) qs.set('adres', adres);
 
   try {
-    const url = `${FACTORY_BASE}/getFctryByFctryManageNoService_v2?${qs}`;
+    const url = `${FACTORY_BASE}/getFctryPrdctnService_v2?${qs}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(20000) });
     const text = await r.text();
     let data;

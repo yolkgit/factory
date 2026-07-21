@@ -252,14 +252,17 @@
   <div id="panel-factory" style="display:none;">
     <div class="fsearch">
       <div class="frow">
-        <input id="f-product" type="text" placeholder="생산품 (예: 빵, 금형, 화장품)" autocomplete="off" />
-        <input id="f-company" type="text" placeholder="회사명" autocomplete="off" />
-      </div>
-      <div class="frow">
-        <input id="f-addr" type="text" placeholder="지역/주소 (예: 경기도 안산시)" autocomplete="off" />
+        <input id="f-company" type="text" placeholder="회사명 (필수 · 예: 삼립식품)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')factorySearch(1)" />
         <button onclick="factorySearch(1)">공장 검색</button>
       </div>
-      <div class="fnote">전국 등록공장 데이터(한국산업단지공단 · 공장등록생산정보조회서비스). 생산품·회사명·지역으로 조회합니다.</div>
+      <div class="frow">
+        <input id="f-product" type="text" placeholder="생산품 필터 (선택)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')factorySearch(1)" />
+        <input id="f-addr" type="text" placeholder="지역/주소 필터 (선택)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')factorySearch(1)" />
+      </div>
+      <div class="fnote">전국 등록공장 데이터(한국산업단지공단 · 공장등록생산정보조회서비스). 공개 API는 <b>회사명 기준</b>으로 조회하며, 생산품·지역은 추가 필터입니다.</div>
     </div>
     <div id="factory-results"></div>
   </div>
@@ -850,13 +853,18 @@ function findFactoriesFor(code) {
   const node = NODES.get(code);
   if (!node) return;
   switchTab('factory');
-  // 분류명에서 '제조업' 등 접미사를 떼고 대표 키워드로 생산품 검색
-  let kw = node.name.replace(/\s*제조업.*$/, '').replace(/;.*$/, '').split(/[,·]/)[0].trim();
+  // 공개 API는 회사명 기준 조회라 업종만으로는 검색 불가. 생산품 필터에 분류 키워드를 채워두고
+  // 회사명 입력을 유도한다.
+  const kw = node.name.replace(/\s*제조업.*$/, '').replace(/;.*$/, '').split(/[,·]/)[0].trim();
   document.getElementById('f-product').value = kw;
-  document.getElementById('f-company').value = '';
   document.getElementById('f-addr').value = '';
+  const c = document.getElementById('f-company');
+  c.value = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  factorySearch(1);
+  c.focus();
+  document.getElementById('factory-results').innerHTML =
+    `<div class="empty">회사명을 입력하면 <b>${esc(node.name)}</b> 관련 공장을 조회합니다.<br/>
+     (공개 API 특성상 업종만으로는 조회되지 않아 회사명이 필요합니다. 생산품 필터에 “${esc(kw)}”를 넣어뒀습니다.)</div>`;
 }
 
 let factoryPage = 1;
@@ -866,14 +874,14 @@ async function factorySearch(page) {
   const company = document.getElementById('f-company').value.trim();
   const addr = document.getElementById('f-addr').value.trim();
   const el = document.getElementById('factory-results');
-  if (!product && !company && !addr) {
-    el.innerHTML = '<div class="empty">생산품·회사명·지역 중 하나 이상 입력하세요.</div>';
+  if (!company) {
+    el.innerHTML = '<div class="empty">회사명을 입력하세요.<br/>공개 API는 회사명 기준으로 조회하며, 생산품·지역은 추가 필터입니다.</div>';
+    document.getElementById('f-company').focus();
     return;
   }
   el.innerHTML = '<div class="loading">공장을 조회하고 있습니다…</div>';
-  const qs = new URLSearchParams({ pageNo: String(page), numOfRows: '20' });
+  const qs = new URLSearchParams({ pageNo: String(page), numOfRows: '20', cmpnyNm: company });
   if (product) qs.set('mainProductCn', product);
-  if (company) qs.set('cmpnyNm', company);
   if (addr) qs.set('adres', addr);
   try {
     const r = await fetch('api/factory?' + qs);
