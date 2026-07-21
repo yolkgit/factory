@@ -115,6 +115,22 @@
     border-bottom: 1px dashed var(--blue);
   }
   .descbox .xref:hover { background: #eef3fe; }
+  .relbox { margin-top: 4px; }
+  .reltitle {
+    font-size: 12px; font-weight: 700; color: #4a5568; margin: 10px 0 5px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .reltitle span { color: var(--blue); }
+  .reltitle .relhelp { color: #9aa3b0; cursor: help; font-weight: 400; }
+  .relchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .relchip {
+    font-size: 12.5px; text-decoration: none; color: #3d4a5c;
+    background: #f1f5fb; border: 1px solid #e2e9f5; border-radius: 8px; padding: 4px 9px;
+  }
+  .relchip:hover { border-color: var(--blue); color: var(--blue); background: #eef3fe; }
+  .detailhint {
+    margin-top: 8px; font-size: 11.5px; color: #9aa3b0;
+  }
   .oldhit {
     margin-top: 7px; font-size: 12.5px; color: #c05621; background: #fdf6f0;
     border: 1px solid #f5dcc8; border-radius: 8px; padding: 5px 9px; display: inline-block;
@@ -210,6 +226,7 @@ let UPJONG_BY_K = new Map(); // KSIC5 -> [{u, un}]  국세청 업종코드
 let UPJONG_BY_U = new Map(); // 업종코드6 -> [{k, un}]
 let UPJONG_TERMS = [];       // [{u, un, k, norm}]
 let DESC = {};               // code -> {e: 영문명, d: 설명}
+let REFS_IN = new Map();      // code -> [codes that reference it in their 제외/설명]
 let lastResults = [];
 let lastQuery = '';
 
@@ -284,6 +301,19 @@ async function loadData() {
     if (!OLD2NEW.get(old).includes(nw)) OLD2NEW.get(old).push(nw);
   }
   DESC = data.desc || {};
+  // 해설 본문의 5자리 참조 코드로 역참조(누가 이 코드를 제외/참조로 안내하는가) 인덱스 구축
+  for (const code in DESC) {
+    const d = DESC[code].d;
+    if (!d) continue;
+    const seen = new Set();
+    for (const m of d.matchAll(/\d{5}/g)) {
+      const ref = m[0];
+      if (ref === code || seen.has(ref) || !NODES.has(ref)) continue;
+      seen.add(ref);
+      if (!REFS_IN.has(ref)) REFS_IN.set(ref, []);
+      REFS_IN.get(ref).push(code);
+    }
+  }
   for (const [u, un, k] of (data.upjong || [])) {
     if (!UPJONG_BY_K.has(k)) UPJONG_BY_K.set(k, []);
     UPJONG_BY_K.get(k).push({ u, un });
@@ -429,6 +459,32 @@ function upjongHTML(code) {
   return `<div class="oldnew"><span class="tag nts">국세청 업종코드</span></div><div class="chips" style="margin-top:4px;">${shown}${more}</div>`;
 }
 
+function relatedHTML(code) {
+  const node = NODES.get(code);
+  if (!node) return '';
+  const chip = (c) => {
+    const n = NODES.get(c);
+    return `<a href="#" class="relchip" onclick="event.preventDefault();event.stopPropagation();searchCode('${c}')">${esc(c)} ${esc(n ? n.name : '')}</a>`;
+  };
+  let html = '';
+  // 형제 코드: 같은 상위(세분류) 아래 다른 세세분류
+  if (node.parent) {
+    const sibs = (CHILDREN.get(node.parent) || []).filter((c) => c !== code);
+    if (sibs.length) {
+      html += `<div class="reltitle">같은 세분류 내 다른 코드 <span>${sibs.length}</span></div>
+        <div class="relchips">${sibs.map(chip).join('')}</div>`;
+    }
+  }
+  // 역참조: 이 코드를 제외/참조 항목으로 안내하는 다른 분류
+  const ins = (REFS_IN.get(code) || []).filter((c) => !NODES.get(code).parent || (CHILDREN.get(NODES.get(code).parent) || []).indexOf(c) < 0);
+  if (ins.length) {
+    html += `<div class="reltitle">이 코드로 안내하는 분류 <span>${ins.length}</span>
+      <span class="relhelp" title="다른 분류의 제외·참조 항목에서 이 코드를 지목한 경우입니다">ⓘ</span></div>
+      <div class="relchips">${ins.map(chip).join('')}</div>`;
+  }
+  return html ? `<div class="relbox">${html}</div>` : '';
+}
+
 function descHTML(code) {
   const d = DESC[code];
   if (!d || !d.d) return d && d.e
@@ -488,6 +544,7 @@ function cardHTML(r, query) {
     ${r.node.level === 5 ? descHTML(r.code) + oldnewHTML(r.code) + smeHTML(r.code) + upjongHTML(r.code) : ''}
     ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
+    ${r.node.level === 5 || (CHILDREN.get(r.code) || []).length ? '<div class="detailhint">▸ 클릭하면 관련 분류·색인어를 볼 수 있습니다</div>' : ''}
     <div class="detail" id="detail-${r.code}"></div>
   </div>`;
 }
@@ -506,6 +563,8 @@ function toggleDetail(ev, code) {
         return `<a href="#" onclick="event.preventDefault();event.stopPropagation();searchCode('${k}')">${esc(k)} · ${esc(kn.name)}</a>`;
       }).join('') + '</div>';
   }
+  const rel = relatedHTML(code);
+  if (rel) html += rel;
   const terms = CODE_TERMS.get(code) || [];
   if (terms.length) {
     html += `<h4 style="margin-top:8px;">이 코드의 색인어 전체 (${terms.length}개)</h4>
