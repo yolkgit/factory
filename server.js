@@ -85,8 +85,9 @@ app.get('/api/company', async (req, res) => {
     return res.status(400).json({ ok: false, reason: 'no_query', message: '업종코드 또는 회사명을 입력하세요.' });
   }
   const qs = new URLSearchParams({ serviceKey: FACTORY_KEY, page: String(pageNo), perPage: String(perPage) });
-  // 한 공장이 복수 업종코드를 가질 수 있어 LIKE 부분일치 사용
-  if (indutyCode) qs.append('cond[업종코드::LIKE]', indutyCode);
+  // 이 데이터셋은 10차 산업분류 '대표업종' 코드로 필터. 클라이언트가 11차→10차 변환해 전달.
+  // (업종코드 필드는 복수 코드가 천단위 콤마로 합쳐져 있어 LIKE 매칭이 불가능하므로 대표업종::EQ 사용)
+  if (indutyCode) qs.append('cond[대표업종::EQ]', indutyCode);
   if (cmpnyNm) qs.append('cond[회사명::LIKE]', cmpnyNm);
   if (sido) qs.append('cond[시도명::LIKE]', sido);
   try {
@@ -102,8 +103,9 @@ app.get('/api/company', async (req, res) => {
     const items = (data.data || []).map((r) => ({
       cmpnyNm: r['회사명'] || '',
       rprsntvNm: '',
-      indutyNm: r['업종명'] || r['대표업종'] || '',
-      indutyCodes: r['업종코드'] || '',
+      indutyNm: r['업종명'] || '',
+      // 업종코드 필드는 복수코드가 콤마로 합쳐져 있어 신뢰불가 → 대표업종(단일 10차 코드) 사용
+      indutyCodes: r['대표업종'] != null ? String(r['대표업종']) : '',
       mainProductCn: r['생산품'] || '',
       irsttNm: r['단지명'] || '',
       adres: r['공장주소'] || r['공장주소_지번'] || '',

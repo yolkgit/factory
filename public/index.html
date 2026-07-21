@@ -887,7 +887,14 @@ function findFactoriesFor(code) {
   companySearch(1);
 }
 
-let companyCtx = { code: '', sido: '' };
+// 입력 코드(11차 기준)를 공장 데이터의 10차 '대표업종' 코드로 변환.
+// 신구연계에 있으면 10차 코드 목록, 없으면(코드 불변 또는 직접 10차 입력) 입력값 그대로 사용.
+function to10th(code) {
+  const olds = NEW2OLD.get(code);
+  if (olds && olds.length) return olds.map((o) => o.old);
+  return [code];
+}
+
 async function companySearch(page) {
   const code = document.getElementById('c-code').value.trim();
   const sido = document.getElementById('c-sido').value.trim();
@@ -897,11 +904,15 @@ async function companySearch(page) {
     document.getElementById('c-code').focus();
     return;
   }
-  companyCtx = { code, sido };
   const node = NODES.get(code);
+  const oldCodes = to10th(code);
+  const queryCode = oldCodes[0]; // 10차 대표업종 기준 조회
   const ctxName = node ? `${esc(code)} ${esc(node.name)}` : esc(code);
+  const convNote = (queryCode !== code || oldCodes.length > 1)
+    ? `<div class="fnote" style="margin:0 0 10px;">공장 등록자료는 10차 분류 기준이라 <b>${esc(oldCodes.join(', '))}</b>(10차 대표업종)로 조회합니다.${oldCodes.length > 1 ? ' (여러 연계코드 중 첫 코드 기준)' : ''}</div>`
+    : '';
   el.innerHTML = `<div class="loading">${ctxName} 등록기업을 조회하고 있습니다…</div>`;
-  const qs = new URLSearchParams({ indutyCode: code, pageNo: String(page), perPage: '20' });
+  const qs = new URLSearchParams({ indutyCode: queryCode, pageNo: String(page), perPage: '20' });
   if (sido) qs.set('sido', sido);
   try {
     const r = await fetch('api/company?' + qs);
@@ -910,7 +921,7 @@ async function companySearch(page) {
       el.innerHTML = companyErrorHTML(data);
       return;
     }
-    renderFactories(data, { pager: 'companySearch', title: `${ctxName} 등록기업`, showSido: true });
+    renderFactories(data, { pager: 'companySearch', title: `${ctxName} 등록기업`, showSido: true, note: convNote });
   } catch (e) {
     el.innerHTML = `<div class="empty">조회 중 오류가 발생했습니다.<br/>${esc(String(e))}</div>`;
   }
@@ -973,15 +984,20 @@ function renderFactories(data, opts) {
     return;
   }
   const perPage = data.numOfRows || data.perPage || 20;
-  const totalPages = Math.max(1, Math.ceil(data.totalCount / perPage));
-  let html = `<div class="section-title">${esc(opts.title || '등록기업')} <span class="cnt">${data.totalCount.toLocaleString()}</span>
+  // odcloud는 matchCount(필터 결과)와 totalCount(전체)를 구분 반환 → 필터 건수 기준 표시
+  const count = (data.matchCount != null ? data.matchCount : data.totalCount) || 0;
+  const totalPages = Math.max(1, Math.ceil(count / perPage));
+  let html = `<div class="section-title">${esc(opts.title || '등록기업')} <span class="cnt">${count.toLocaleString()}</span>
     <span class="right" style="font-weight:400;color:#9aa3b0;font-size:12px;">${data.pageNo} / ${totalPages} 페이지</span></div>`;
+  if (opts.note) html += opts.note;
   html += data.items.map((f) => {
     const codes = (f.indutyCodes || '').split(/[,\s]+/).filter(Boolean);
     const codeChips = codes.map((c) => {
       const five = c.replace(/[^0-9]/g, '').slice(0, 5);
-      return NODES.has(five)
-        ? `<a href="#" class="relchip" onclick="event.preventDefault();searchCode('${five}')">${esc(c)}</a>`
+      // 코드가 11차 분류에 있으면 바로, 없으면(10차 코드) 신구연계로 11차 코드를 찾아 링크
+      let link11 = NODES.has(five) ? five : (OLD2NEW.get(five) || [])[0];
+      return link11 && NODES.has(link11)
+        ? `<a href="#" class="relchip" onclick="event.preventDefault();searchCode('${link11}')">${esc(c)}</a>`
         : `<span class="chip">${esc(c)}</span>`;
     }).join('');
     const region = opts.showSido && (f.sido || f.sigungu) ? `${esc(f.sido || '')} ${esc(f.sigungu || '')}`.trim() : '';
