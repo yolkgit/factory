@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "crawl": "node scripts/crawl-tree.js && node scripts/crawl-index.js && node scripts/crawl-oldnew.js",
+    "crawl": "node scripts/crawl-tree.js && node scripts/crawl-index.js && node scripts/crawl-oldnew.js && node scripts/crawl-desc.js",
     "build-upjong": "node scripts/build-upjong.js",
     "build-data": "node scripts/build-data.js"
   },

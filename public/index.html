@@ -101,6 +101,20 @@
   .oldnew .tag.sme { background: #e8f4fd; color: #1a6fa8; }
   .smelaw { cursor: help; color: #9aa3b0; margin-left: 4px; }
   .smenote { font-size: 11.5px; color: #8a94a3; margin-top: 3px; }
+  .engname { font-size: 12.5px; color: #8a94a3; margin-top: 3px; font-style: italic; }
+  .descbox {
+    margin-top: 8px; background: #f8fafc; border: 1px solid #eef1f6; border-radius: 9px;
+    padding: 9px 12px; font-size: 13px; color: #3d4a5c; line-height: 1.65;
+  }
+  .descbox .dline { margin: 1px 0; }
+  .descbox .dsec { font-weight: 700; font-size: 11.5px; margin: 6px 0 2px; }
+  .descbox .dsec.inc { color: #2b7a3d; }
+  .descbox .dsec.exc { color: #c05621; }
+  .descbox .xref {
+    color: var(--blue); text-decoration: none; font-weight: 600;
+    border-bottom: 1px dashed var(--blue);
+  }
+  .descbox .xref:hover { background: #eef3fe; }
   .oldhit {
     margin-top: 7px; font-size: 12.5px; color: #c05621; background: #fdf6f0;
     border: 1px solid #f5dcc8; border-radius: 8px; padding: 5px 9px; display: inline-block;
@@ -156,7 +170,7 @@
 <body>
 <header>
   <h1>산업분류코드 검색</h1>
-  <p>한국표준산업분류(KSIC) 11차 · 10차 신구연계 · 국세청 업종코드 연계 · 중소기업 기준 확인</p>
+  <p>KSIC 11차 · 분류 해설 · 10차 신구연계 · 국세청 업종코드 · 중소기업 기준</p>
 </header>
 
 <div class="wrap">
@@ -195,6 +209,7 @@ let OLD2NEW = new Map();    // 10차 code -> [11차 codes]
 let UPJONG_BY_K = new Map(); // KSIC5 -> [{u, un}]  국세청 업종코드
 let UPJONG_BY_U = new Map(); // 업종코드6 -> [{k, un}]
 let UPJONG_TERMS = [];       // [{u, un, k, norm}]
+let DESC = {};               // code -> {e: 영문명, d: 설명}
 let lastResults = [];
 let lastQuery = '';
 
@@ -268,6 +283,7 @@ async function loadData() {
     if (!OLD2NEW.has(old)) OLD2NEW.set(old, []);
     if (!OLD2NEW.get(old).includes(nw)) OLD2NEW.get(old).push(nw);
   }
+  DESC = data.desc || {};
   for (const [u, un, k] of (data.upjong || [])) {
     if (!UPJONG_BY_K.has(k)) UPJONG_BY_K.set(k, []);
     UPJONG_BY_K.get(k).push({ u, un });
@@ -275,8 +291,9 @@ async function loadData() {
     UPJONG_BY_U.get(u).push({ k, un });
     UPJONG_TERMS.push({ u, un, k, norm: norm(un) });
   }
+  const descCnt = Object.values(DESC).filter(v => v.d).length;
   document.getElementById('hint').textContent =
-    `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 · 10차 연계 · 국세청 업종코드 ${UPJONG_BY_U.size.toLocaleString()}개`;
+    `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 · 해설 ${descCnt.toLocaleString()}개 · 국세청 업종코드 ${UPJONG_BY_U.size.toLocaleString()}개`;
   renderTree();
   const urlQ = new URLSearchParams(location.search).get('q');
   if (urlQ) {
@@ -353,6 +370,17 @@ function search(query) {
     if (s) add(t.k, s, '[국세청 ' + t.u + '] ' + t.un);
   }
 
+  // 2-2) 설명(해설) 본문 검색 — 정의·예시·제외 문구로도 코드를 찾는다
+  for (const code in DESC) {
+    const d = DESC[code].d;
+    if (!d) continue;
+    const dn = norm(d);
+    let s = 0;
+    if (dn.includes(qn)) s = 56;
+    else if (tokens.length > 1 && tokens.every(tok => dn.includes(tok))) s = 54;
+    if (s) add(code, s, null);
+  }
+
   // 3) 분류항목명 검색 (모든 수준)
   for (const n of NAME_INDEX) {
     let s = 0;
@@ -401,6 +429,26 @@ function upjongHTML(code) {
   return `<div class="oldnew"><span class="tag nts">국세청 업종코드</span></div><div class="chips" style="margin-top:4px;">${shown}${more}</div>`;
 }
 
+function descHTML(code) {
+  const d = DESC[code];
+  if (!d || !d.d) return d && d.e
+    ? `<div class="engname">${esc(d.e)}</div>` : '';
+  // 설명 텍스트 내 5자리 코드(제외/이동 참조)를 클릭 가능한 링크로
+  const lines = d.d.split('\n').map((line) => {
+    let cls = 'dline';
+    let label = '';
+    if (line === '[예시]') { return '<div class="dsec inc">▸ 포함(예시)</div>'; }
+    if (line === '[제외]') { return '<div class="dsec exc">▸ 제외</div>'; }
+    if (line === '[주요활동]' || line === '[포함]') { return `<div class="dsec inc">▸ ${esc(line.slice(1,-1))}</div>`; }
+    let html = esc(line).replace(/(\d{5})/g, (m) =>
+      NODES.has(m) ? `<a href="#" class="xref" onclick="event.preventDefault();event.stopPropagation();searchCode('${m}')">${m}</a>` : m
+    );
+    return `<div class="${cls}">${html}</div>`;
+  }).join('');
+  const eng = d.e ? `<div class="engname">${esc(d.e)}</div>` : '';
+  return `${eng}<div class="descbox">${lines}</div>`;
+}
+
 function smeHTML(code) {
   const s = smeInfo(code);
   if (!s) return '';
@@ -437,7 +485,7 @@ function cardHTML(r, query) {
       </span>
     </div>
     <div class="path">${crumb}</div>
-    ${r.node.level === 5 ? oldnewHTML(r.code) + smeHTML(r.code) + upjongHTML(r.code) : ''}
+    ${r.node.level === 5 ? descHTML(r.code) + oldnewHTML(r.code) + smeHTML(r.code) + upjongHTML(r.code) : ''}
     ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
     <div class="detail" id="detail-${r.code}"></div>
@@ -546,13 +594,16 @@ function quickSearch(q) {
 /* ---------- CSV 내보내기 ---------- */
 function exportCSV() {
   if (!lastResults.length) return;
-  const rows = [['코드', '수준', '분류명', '전체경로', '10차연계', '국세청업종코드', '중소기업기준(억원)', '소기업기준(억원)', '매칭색인어']];
+  const rows = [['코드', '수준', '분류명', '영문명', '설명', '전체경로', '10차연계', '국세청업종코드', '중소기업기준(억원)', '소기업기준(억원)', '매칭색인어']];
   for (const r of lastResults) {
     const olds = (NEW2OLD.get(r.code) || []).map(o => o.old + (o.old === r.code ? '(동일)' : ' ' + o.oldName)).join('; ');
     const ups = (UPJONG_BY_K.get(r.code) || []).map(o => o.u + ' ' + o.un).join('; ');
     const s = r.node.level === 5 ? smeInfo(r.code) : null;
+    const dd = DESC[r.code] || {};
     rows.push([
       r.code, LV_NAME[r.node.level], r.node.name,
+      r.node.level === 5 ? (dd.e || '') : '',
+      r.node.level === 5 ? (dd.d || '').replace(/\n/g, ' ') : '',
       pathOf(r.code).map(n => n.code + ' ' + n.name).join(' > '),
       r.node.level === 5 ? olds : '',
       r.node.level === 5 ? ups : '',
