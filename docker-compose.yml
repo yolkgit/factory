@@ -8,3 +8,5 @@ services:
     environment:
       - PORT=3000
       - TZ=Asia/Seoul
+      # 공장 조회 오픈API 인증키(data.go.kr 일반 인증키 Decoding). 없으면 공장조회 탭만 비활성.
+      - FACTORY_API_KEY=${FACTORY_API_KEY:-}

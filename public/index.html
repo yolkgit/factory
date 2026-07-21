@@ -145,6 +145,35 @@
   .detailhint {
     margin-top: 8px; font-size: 11.5px; color: #9aa3b0;
   }
+  .cardbtns { margin-top: 10px; }
+  .factorybtn {
+    border: 1px solid #d6e0f5; background: #f5f9ff; color: #1a55c4;
+    font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  }
+  .factorybtn:hover { background: #e8f1ff; border-color: var(--blue); }
+  /* 공장 조회 */
+  .fsearch { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 16px; }
+  .frow { display: flex; gap: 8px; margin-bottom: 8px; }
+  .frow:last-of-type { margin-bottom: 0; }
+  .frow input {
+    flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 9px;
+    padding: 9px 11px; font-size: 14px; outline: 0;
+  }
+  .frow input:focus { border-color: var(--blue); }
+  .frow button {
+    border: 0; background: var(--blue); color: #fff; font-size: 14px; font-weight: 600;
+    border-radius: 9px; padding: 0 20px; cursor: pointer; white-space: nowrap;
+  }
+  .fnote { font-size: 11.5px; color: #9aa3b0; margin-top: 8px; }
+  .fcard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; margin-bottom: 9px; }
+  .frow1 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .fname { font-size: 15.5px; font-weight: 700; color: var(--text); }
+  .frep { font-size: 12.5px; color: #8a94a3; }
+  .finfo { font-size: 13px; color: #4a5568; margin-top: 5px; line-height: 1.5; }
+  .finfo b { color: #8a94a3; font-weight: 600; font-size: 12px; margin-right: 4px; }
+  .fpager { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0; font-size: 13px; color: #6b7684; }
+  .fpage { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 6px 14px; cursor: pointer; color: var(--blue); }
+  .fpage:hover { border-color: var(--blue); }
   .oldhit {
     margin-top: 7px; font-size: 12.5px; color: #c05621; background: #fdf6f0;
     border: 1px solid #f5dcc8; border-radius: 8px; padding: 5px 9px; display: inline-block;
@@ -211,6 +240,7 @@
   <div class="tabs">
     <button class="tab active" id="tab-search" onclick="switchTab('search')">코드 검색</button>
     <button class="tab" id="tab-browse" onclick="switchTab('browse')">분류 탐색</button>
+    <button class="tab" id="tab-factory" onclick="switchTab('factory')">공장 조회</button>
   </div>
   <div id="panel-search">
     <div class="hint" id="hint">데이터 불러오는 중…</div>
@@ -218,6 +248,20 @@
   </div>
   <div id="panel-browse" style="display:none;">
     <div class="tree" id="treeroot"></div>
+  </div>
+  <div id="panel-factory" style="display:none;">
+    <div class="fsearch">
+      <div class="frow">
+        <input id="f-product" type="text" placeholder="생산품 (예: 빵, 금형, 화장품)" autocomplete="off" />
+        <input id="f-company" type="text" placeholder="회사명" autocomplete="off" />
+      </div>
+      <div class="frow">
+        <input id="f-addr" type="text" placeholder="지역/주소 (예: 경기도 안산시)" autocomplete="off" />
+        <button onclick="factorySearch(1)">공장 검색</button>
+      </div>
+      <div class="fnote">전국 등록공장 데이터(한국산업단지공단 · 공장등록생산정보조회서비스). 생산품·회사명·지역으로 조회합니다.</div>
+    </div>
+    <div id="factory-results"></div>
   </div>
   <footer>
     출처: 통계청 통계분류포털(kssc.kostat.go.kr) 한국표준산업분류 11차 (10차 연계 포함)<br/>
@@ -639,6 +683,7 @@ function cardHTML(r, query) {
     ${r.node.level === 5 ? descHTML(r.code) + oldnewHTML(r.code) + smeHTML(r.code) + sanjaeHTML(r.code) + upjongHTML(r.code) : ''}
     ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
+    ${r.node.level === 5 ? `<div class="cardbtns"><button class="factorybtn" onclick="event.stopPropagation();findFactoriesFor('${r.code}')">🏭 이 업종 공장 찾기</button></div>` : ''}
     ${r.node.level === 5 || (CHILDREN.get(r.code) || []).length ? '<div class="detailhint">▸ 클릭하면 관련 분류·색인어를 볼 수 있습니다</div>' : ''}
     <div class="detail" id="detail-${r.code}"></div>
   </div>`;
@@ -786,10 +831,102 @@ function exportCSV() {
 
 /* ---------- 분류 탐색 트리 ---------- */
 function switchTab(tab) {
-  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
-  document.getElementById('tab-browse').classList.toggle('active', tab === 'browse');
-  document.getElementById('panel-search').style.display = tab === 'search' ? '' : 'none';
-  document.getElementById('panel-browse').style.display = tab === 'browse' ? '' : 'none';
+  for (const t of ['search', 'browse', 'factory']) {
+    document.getElementById('tab-' + t).classList.toggle('active', tab === t);
+    document.getElementById('panel-' + t).style.display = tab === t ? '' : 'none';
+  }
+}
+
+/* ---------- 공장 조회 (한국산업단지공단 오픈API 프록시) ---------- */
+let factoryEnabled = null;
+async function checkFactory() {
+  try {
+    const r = await fetch('api/factory/status');
+    factoryEnabled = (await r.json()).enabled;
+  } catch { factoryEnabled = false; }
+}
+
+function findFactoriesFor(code) {
+  const node = NODES.get(code);
+  if (!node) return;
+  switchTab('factory');
+  // 분류명에서 '제조업' 등 접미사를 떼고 대표 키워드로 생산품 검색
+  let kw = node.name.replace(/\s*제조업.*$/, '').replace(/;.*$/, '').split(/[,·]/)[0].trim();
+  document.getElementById('f-product').value = kw;
+  document.getElementById('f-company').value = '';
+  document.getElementById('f-addr').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  factorySearch(1);
+}
+
+let factoryPage = 1;
+async function factorySearch(page) {
+  factoryPage = page;
+  const product = document.getElementById('f-product').value.trim();
+  const company = document.getElementById('f-company').value.trim();
+  const addr = document.getElementById('f-addr').value.trim();
+  const el = document.getElementById('factory-results');
+  if (!product && !company && !addr) {
+    el.innerHTML = '<div class="empty">생산품·회사명·지역 중 하나 이상 입력하세요.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="loading">공장을 조회하고 있습니다…</div>';
+  const qs = new URLSearchParams({ pageNo: String(page), numOfRows: '20' });
+  if (product) qs.set('mainProductCn', product);
+  if (company) qs.set('cmpnyNm', company);
+  if (addr) qs.set('adres', addr);
+  try {
+    const r = await fetch('api/factory?' + qs);
+    const data = await r.json();
+    if (!data.ok) {
+      if (data.reason === 'no_key') {
+        el.innerHTML = `<div class="empty">공장조회 기능이 아직 활성화되지 않았습니다.<br/>
+          data.go.kr에서 <b>한국산업단지공단 공장등록생산정보조회서비스</b> 인증키를 발급받아<br/>
+          서버 환경변수 <code>FACTORY_API_KEY</code> 에 설정하면 사용할 수 있습니다.</div>`;
+      } else {
+        el.innerHTML = `<div class="empty">조회 오류: ${esc(data.message || data.reason || '알 수 없음')}</div>`;
+      }
+      return;
+    }
+    renderFactories(data);
+  } catch (e) {
+    el.innerHTML = `<div class="empty">조회 중 오류가 발생했습니다.<br/>${esc(String(e))}</div>`;
+  }
+}
+
+function renderFactories(data) {
+  const el = document.getElementById('factory-results');
+  if (!data.items.length) {
+    el.innerHTML = '<div class="empty">해당 조건의 등록공장을 찾지 못했습니다.<br/>키워드를 바꿔 다시 검색해보세요.</div>';
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(data.totalCount / data.numOfRows));
+  let html = `<div class="section-title">등록공장 <span class="cnt">${data.totalCount.toLocaleString()}</span>
+    <span class="right" style="font-weight:400;color:#9aa3b0;font-size:12px;">${data.pageNo} / ${totalPages} 페이지</span></div>`;
+  html += data.items.map((f) => {
+    const codes = (f.indutyCodes || '').split(/[,\s]+/).filter(Boolean);
+    const codeChips = codes.map((c) => {
+      const five = c.replace(/[^0-9]/g, '').slice(0, 5);
+      return NODES.has(five)
+        ? `<a href="#" class="relchip" onclick="event.preventDefault();searchCode('${five}')">${esc(c)}</a>`
+        : `<span class="chip">${esc(c)}</span>`;
+    }).join('');
+    return `<div class="fcard">
+      <div class="frow1"><span class="fname">${esc(f.cmpnyNm || '(회사명 미상)')}</span>
+        ${f.rprsntvNm ? `<span class="frep">대표 ${esc(f.rprsntvNm)}</span>` : ''}</div>
+      ${f.indutyNm ? `<div class="finfo"><b>업종</b> ${esc(f.indutyNm)} ${codeChips}</div>` : ''}
+      ${f.mainProductCn ? `<div class="finfo"><b>주생산품</b> ${esc(f.mainProductCn)}</div>` : ''}
+      ${f.adres ? `<div class="finfo"><b>주소</b> ${esc(f.adres)}</div>` : ''}
+      ${f.irsttNm ? `<div class="finfo"><b>산업단지</b> ${esc(f.irsttNm)}</div>` : ''}
+    </div>`;
+  }).join('');
+  // 페이지 이동
+  if (totalPages > 1) {
+    const prev = data.pageNo > 1 ? `<button class="fpage" onclick="factorySearch(${data.pageNo - 1})">‹ 이전</button>` : '';
+    const next = data.pageNo < totalPages ? `<button class="fpage" onclick="factorySearch(${data.pageNo + 1})">다음 ›</button>` : '';
+    html += `<div class="fpager">${prev}<span>${data.pageNo} / ${totalPages}</span>${next}</div>`;
+  }
+  el.innerHTML = html;
 }
 
 function countLeaves(code) {
@@ -878,6 +1015,7 @@ document.getElementById('q').addEventListener('keypress', (e) => {
   if (e.key === 'Enter') runSearch();
 });
 
+checkFactory();
 loadData().catch((e) => {
   document.getElementById('results').innerHTML =
     `<div class="empty">데이터 로딩에 실패했습니다.<br/>${esc(String(e))}</div>`;

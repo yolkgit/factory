@@ -28,6 +28,21 @@ npm install
 npm start        # http://localhost:3000
 ```
 
+## 공장 조회 (선택 기능)
+
+"공장 조회" 탭은 한국산업단지공단 **공장등록생산정보조회서비스** 오픈API(data.go.kr)를 사용한다.
+개인 로그인(factoryon.go.kr) 대신 공식 오픈API를 서버 프록시로 호출하며, 인증키는 서버에만 보관한다.
+
+1. [data.go.kr](https://www.data.go.kr/data/15087611/openapi.do)에서 해당 서비스 활용신청 → **일반 인증키(Decoding)** 발급
+2. 서버 실행 시 환경변수로 주입:
+   ```bash
+   FACTORY_API_KEY="발급받은_디코딩_키" npm start
+   ```
+   (docker-compose.yml의 environment 또는 배포 서버 .env에 추가)
+3. 키가 없으면 다른 기능은 정상 동작하고, 공장 조회 탭에서만 안내 문구가 표시된다.
+
+생산품·회사명·지역으로 조회하며, 코드 검색 결과 카드의 "🏭 이 업종 공장 찾기"로 분류명을 생산품 키워드로 넘겨 연결된다.
+
 ## 데이터 갱신 (분류 개정 시)
 
 ```bash
