@@ -152,7 +152,13 @@
   }
   .factorybtn:hover { background: #e8f1ff; border-color: var(--blue); }
   /* 공장 조회 */
-  .fsearch { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 16px; }
+  .fmodes { display: flex; gap: 6px; margin-top: 16px; }
+  .fmode {
+    border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 9px; cursor: pointer;
+  }
+  .fmode.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .fsearch { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 10px; }
   .frow { display: flex; gap: 8px; margin-bottom: 8px; }
   .frow:last-of-type { margin-bottom: 0; }
   .frow input {
@@ -250,7 +256,21 @@
     <div class="tree" id="treeroot"></div>
   </div>
   <div id="panel-factory" style="display:none;">
-    <div class="fsearch">
+    <div class="fmodes">
+      <button class="fmode active" id="fmode-code" onclick="setFactoryMode('code')">업종코드로 기업검색</button>
+      <button class="fmode" id="fmode-name" onclick="setFactoryMode('name')">회사명으로 검색</button>
+    </div>
+    <div class="fsearch" id="fform-code">
+      <div class="frow">
+        <input id="c-code" type="text" placeholder="산업분류코드 5자리 (예: 10602)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')companySearch(1)" />
+        <input id="c-sido" type="text" placeholder="시·도 (선택, 예: 경기)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')companySearch(1)" />
+        <button onclick="companySearch(1)">기업 검색</button>
+      </div>
+      <div class="fnote">전국등록공장현황(한국산업단지공단) 기반. 해당 <b>산업분류코드로 등록된 전국 기업</b>을 조회합니다. 코드 검색 결과의 “이 업종 기업 검색” 버튼으로도 연결됩니다.</div>
+    </div>
+    <div class="fsearch" id="fform-name" style="display:none;">
       <div class="frow">
         <input id="f-company" type="text" placeholder="회사명 (필수 · 예: 삼립식품)" autocomplete="off"
           onkeypress="if(event.key==='Enter')factorySearch(1)" />
@@ -262,7 +282,7 @@
         <input id="f-addr" type="text" placeholder="지역/주소 필터 (선택)" autocomplete="off"
           onkeypress="if(event.key==='Enter')factorySearch(1)" />
       </div>
-      <div class="fnote">전국 등록공장 데이터(한국산업단지공단 · 공장등록생산정보조회서비스). 공개 API는 <b>회사명 기준</b>으로 조회하며, 생산품·지역은 추가 필터입니다.</div>
+      <div class="fnote">공장등록생산정보조회서비스 기반. 공개 API는 <b>회사명 기준</b>으로 조회하며, 생산품·지역은 추가 필터입니다.</div>
     </div>
     <div id="factory-results"></div>
   </div>
@@ -686,7 +706,7 @@ function cardHTML(r, query) {
     ${r.node.level === 5 ? descHTML(r.code) + oldnewHTML(r.code) + smeHTML(r.code) + sanjaeHTML(r.code) + upjongHTML(r.code) : ''}
     ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
-    ${r.node.level === 5 ? `<div class="cardbtns"><button class="factorybtn" onclick="event.stopPropagation();findFactoriesFor('${r.code}')">🏭 이 업종 공장 찾기</button></div>` : ''}
+    ${r.node.level === 5 ? `<div class="cardbtns"><button class="factorybtn" onclick="event.stopPropagation();findFactoriesFor('${r.code}')">🏭 이 업종 기업 검색</button></div>` : ''}
     ${r.node.level === 5 || (CHILDREN.get(r.code) || []).length ? '<div class="detailhint">▸ 클릭하면 관련 분류·색인어를 볼 수 있습니다</div>' : ''}
     <div class="detail" id="detail-${r.code}"></div>
   </div>`;
@@ -849,22 +869,64 @@ async function checkFactory() {
   } catch { factoryEnabled = false; }
 }
 
+function setFactoryMode(mode) {
+  document.getElementById('fmode-code').classList.toggle('active', mode === 'code');
+  document.getElementById('fmode-name').classList.toggle('active', mode === 'name');
+  document.getElementById('fform-code').style.display = mode === 'code' ? '' : 'none';
+  document.getElementById('fform-name').style.display = mode === 'name' ? '' : 'none';
+}
+
+// 코드 검색 결과 카드의 "이 업종 기업 검색" → 업종코드로 전국 기업 조회
 function findFactoriesFor(code) {
-  const node = NODES.get(code);
-  if (!node) return;
+  if (!NODES.has(code)) return;
   switchTab('factory');
-  // 공개 API는 회사명 기준 조회라 업종만으로는 검색 불가. 생산품 필터에 분류 키워드를 채워두고
-  // 회사명 입력을 유도한다.
-  const kw = node.name.replace(/\s*제조업.*$/, '').replace(/;.*$/, '').split(/[,·]/)[0].trim();
-  document.getElementById('f-product').value = kw;
-  document.getElementById('f-addr').value = '';
-  const c = document.getElementById('f-company');
-  c.value = '';
+  setFactoryMode('code');
+  document.getElementById('c-code').value = code;
+  document.getElementById('c-sido').value = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  c.focus();
-  document.getElementById('factory-results').innerHTML =
-    `<div class="empty">회사명을 입력하면 <b>${esc(node.name)}</b> 관련 공장을 조회합니다.<br/>
-     (공개 API 특성상 업종만으로는 조회되지 않아 회사명이 필요합니다. 생산품 필터에 “${esc(kw)}”를 넣어뒀습니다.)</div>`;
+  companySearch(1);
+}
+
+let companyCtx = { code: '', sido: '' };
+async function companySearch(page) {
+  const code = document.getElementById('c-code').value.trim();
+  const sido = document.getElementById('c-sido').value.trim();
+  const el = document.getElementById('factory-results');
+  if (!code) {
+    el.innerHTML = '<div class="empty">산업분류코드(5자리)를 입력하세요.</div>';
+    document.getElementById('c-code').focus();
+    return;
+  }
+  companyCtx = { code, sido };
+  const node = NODES.get(code);
+  const ctxName = node ? `${esc(code)} ${esc(node.name)}` : esc(code);
+  el.innerHTML = `<div class="loading">${ctxName} 등록기업을 조회하고 있습니다…</div>`;
+  const qs = new URLSearchParams({ indutyCode: code, pageNo: String(page), perPage: '20' });
+  if (sido) qs.set('sido', sido);
+  try {
+    const r = await fetch('api/company?' + qs);
+    const data = await r.json();
+    if (!data.ok) {
+      el.innerHTML = companyErrorHTML(data);
+      return;
+    }
+    renderFactories(data, { pager: 'companySearch', title: `${ctxName} 등록기업`, showSido: true });
+  } catch (e) {
+    el.innerHTML = `<div class="empty">조회 중 오류가 발생했습니다.<br/>${esc(String(e))}</div>`;
+  }
+}
+
+function companyErrorHTML(data) {
+  if (data.reason === 'no_key') {
+    return `<div class="empty">기업조회 기능이 아직 활성화되지 않았습니다.<br/>
+      서버 환경변수 <code>FACTORY_API_KEY</code> 를 설정하세요.</div>`;
+  }
+  if (data.reason === 'dataset_not_activated') {
+    return `<div class="empty">이 기능은 <b>전국등록공장현황</b> 데이터셋 활용신청이 필요합니다.<br/>
+      data.go.kr에서 데이터셋 <b>15105482</b>(한국산업단지공단_전국등록공장현황)를 활용신청하면<br/>
+      기존 인증키로 바로 조회됩니다.</div>`;
+  }
+  return `<div class="empty">조회 오류: ${esc(data.message || data.reason || '알 수 없음')}</div>`;
 }
 
 let factoryPage = 1;
@@ -896,20 +958,23 @@ async function factorySearch(page) {
       }
       return;
     }
-    renderFactories(data);
+    renderFactories(data, { pager: 'factorySearch', title: '등록공장', showSido: false });
   } catch (e) {
     el.innerHTML = `<div class="empty">조회 중 오류가 발생했습니다.<br/>${esc(String(e))}</div>`;
   }
 }
 
-function renderFactories(data) {
+function renderFactories(data, opts) {
+  opts = opts || {};
+  const pager = opts.pager || 'factorySearch';
   const el = document.getElementById('factory-results');
   if (!data.items.length) {
-    el.innerHTML = '<div class="empty">해당 조건의 등록공장을 찾지 못했습니다.<br/>키워드를 바꿔 다시 검색해보세요.</div>';
+    el.innerHTML = '<div class="empty">해당 조건의 등록기업을 찾지 못했습니다.<br/>조건을 바꿔 다시 검색해보세요.</div>';
     return;
   }
-  const totalPages = Math.max(1, Math.ceil(data.totalCount / data.numOfRows));
-  let html = `<div class="section-title">등록공장 <span class="cnt">${data.totalCount.toLocaleString()}</span>
+  const perPage = data.numOfRows || data.perPage || 20;
+  const totalPages = Math.max(1, Math.ceil(data.totalCount / perPage));
+  let html = `<div class="section-title">${esc(opts.title || '등록기업')} <span class="cnt">${data.totalCount.toLocaleString()}</span>
     <span class="right" style="font-weight:400;color:#9aa3b0;font-size:12px;">${data.pageNo} / ${totalPages} 페이지</span></div>`;
   html += data.items.map((f) => {
     const codes = (f.indutyCodes || '').split(/[,\s]+/).filter(Boolean);
@@ -919,19 +984,21 @@ function renderFactories(data) {
         ? `<a href="#" class="relchip" onclick="event.preventDefault();searchCode('${five}')">${esc(c)}</a>`
         : `<span class="chip">${esc(c)}</span>`;
     }).join('');
+    const region = opts.showSido && (f.sido || f.sigungu) ? `${esc(f.sido || '')} ${esc(f.sigungu || '')}`.trim() : '';
     return `<div class="fcard">
       <div class="frow1"><span class="fname">${esc(f.cmpnyNm || '(회사명 미상)')}</span>
-        ${f.rprsntvNm ? `<span class="frep">대표 ${esc(f.rprsntvNm)}</span>` : ''}</div>
+        ${f.rprsntvNm ? `<span class="frep">대표 ${esc(f.rprsntvNm)}</span>` : ''}
+        ${region ? `<span class="frep">${region}</span>` : ''}
+        ${f.emp ? `<span class="frep">종업원 ${esc(String(f.emp))}명</span>` : ''}</div>
       ${f.indutyNm ? `<div class="finfo"><b>업종</b> ${esc(f.indutyNm)} ${codeChips}</div>` : ''}
-      ${f.mainProductCn ? `<div class="finfo"><b>주생산품</b> ${esc(f.mainProductCn)}</div>` : ''}
+      ${f.mainProductCn ? `<div class="finfo"><b>생산품</b> ${esc(f.mainProductCn)}</div>` : ''}
       ${f.adres ? `<div class="finfo"><b>주소</b> ${esc(f.adres)}</div>` : ''}
       ${f.irsttNm ? `<div class="finfo"><b>산업단지</b> ${esc(f.irsttNm)}</div>` : ''}
     </div>`;
   }).join('');
-  // 페이지 이동
   if (totalPages > 1) {
-    const prev = data.pageNo > 1 ? `<button class="fpage" onclick="factorySearch(${data.pageNo - 1})">‹ 이전</button>` : '';
-    const next = data.pageNo < totalPages ? `<button class="fpage" onclick="factorySearch(${data.pageNo + 1})">다음 ›</button>` : '';
+    const prev = data.pageNo > 1 ? `<button class="fpage" onclick="${pager}(${data.pageNo - 1})">‹ 이전</button>` : '';
+    const next = data.pageNo < totalPages ? `<button class="fpage" onclick="${pager}(${data.pageNo + 1})">다음 ›</button>` : '';
     html += `<div class="fpager">${prev}<span>${data.pageNo} / ${totalPages}</span>${next}</div>`;
   }
   el.innerHTML = html;
