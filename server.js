@@ -1,9 +1,19 @@
 const express = require('express');
 const compression = require('compression');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// SEO용 정식 사이트 주소(도메인 확정 시 .env의 SITE_URL 설정). 미설정 시 요청 호스트 사용.
+const SITE_URL = (process.env.SITE_URL || '').replace(/\/$/, '');
+function siteUrl(req) {
+  if (SITE_URL) return SITE_URL;
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  return `${proto}://${req.headers.host}`;
+}
+const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
 
 // 한국산업단지공단 공장등록생산정보조회서비스 (data.go.kr 오픈API)
 // FACTORY_API_KEY: data.go.kr에서 발급받은 '일반 인증키(Decoding)'를 환경변수로 주입
@@ -131,8 +141,81 @@ app.get('/api/factory/status', (req, res) => {
   res.json({ enabled: !!FACTORY_KEY });
 });
 
+// robots.txt — 검색엔진·AI 크롤러 모두 허용, sitemap 안내
+app.get('/robots.txt', (req, res) => {
+  const base = siteUrl(req);
+  res.type('text/plain').send(
+    [
+      'User-agent: *',
+      'Allow: /',
+      '',
+      '# AI 답변 엔진 크롤러 명시적 허용',
+      'User-agent: GPTBot',
+      'Allow: /',
+      'User-agent: OAI-SearchBot',
+      'Allow: /',
+      'User-agent: ChatGPT-User',
+      'Allow: /',
+      'User-agent: ClaudeBot',
+      'Allow: /',
+      'User-agent: Claude-Web',
+      'Allow: /',
+      'User-agent: PerplexityBot',
+      'Allow: /',
+      'User-agent: Google-Extended',
+      'Allow: /',
+      'User-agent: Yeti', // 네이버
+      'Allow: /',
+      '',
+      `Sitemap: ${base}/sitemap.xml`,
+      '',
+    ].join('\n')
+  );
+});
+
+// sitemap.xml
+app.get('/sitemap.xml', (req, res) => {
+  const base = siteUrl(req);
+  const today = new Date().toISOString().slice(0, 10);
+  res.type('application/xml').send(
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n` +
+      `</urlset>\n`
+  );
+});
+
+// llms.txt — AI/LLM이 사이트를 이해하도록 돕는 요약(신흥 표준)
+app.get('/llms.txt', (req, res) => {
+  const base = siteUrl(req);
+  res.type('text/plain').send(
+    `# 산업분류코드 조회 (KSIC 11차)\n\n` +
+      `> 물품·업종명으로 한국표준산업분류(KSIC 11차) 코드를 조회하고, 분류 해설·10차 신구연계·국세청 업종코드/경비율·산재보험료율·중소기업 기준·산업분류코드별 전국 기업(공장)까지 확인하는 무료 웹 서비스.\n\n` +
+      `## 주요 기능\n` +
+      `- 산업분류코드(업종코드) 검색: 물품명·업종명·코드로 KSIC 11차 세세분류 조회\n` +
+      `- 분류 해설: 각 코드의 정의·포함(예시)·제외 항목\n` +
+      `- 10차↔11차 신구연계 코드 변환\n` +
+      `- 국세청 업종코드 연계 및 기준·단순경비율(2025 귀속)\n` +
+      `- 사업종류별 산재보험료율(2026)\n` +
+      `- 중소기업기본법 시행령 업종별 중소기업/소기업 규모 기준\n` +
+      `- 산업분류코드로 전국 등록기업(공장) 검색\n\n` +
+      `## 데이터 출처\n` +
+      `- 통계청 통계분류포털(KSIC 11차)\n` +
+      `- 국세청(업종코드·경비율)\n` +
+      `- 고용노동부(산재보험료율), 한국산업단지공단(전국등록공장현황)\n\n` +
+      `사이트: ${base}/\n`
+  );
+});
+
+// 정식 URL(canonical/OG)을 주입해 index.html 제공 — 크롤러가 정적 메타를 읽도록
+function serveIndex(req, res) {
+  res.type('html').send(INDEX_HTML.replace(/%%SITE_URL%%/g, siteUrl(req)));
+}
+app.get('/', serveIndex);
+app.get('/index.html', serveIndex);
+
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0 }));
 
 app.listen(PORT, () => {
-  console.log(`ksic-search listening on :${PORT} (factory API: ${FACTORY_KEY ? 'on' : 'off'})`);
+  console.log(`ksic-search listening on :${PORT} (factory API: ${FACTORY_KEY ? 'on' : 'off'}, site: ${SITE_URL || 'auto'})`);
 });

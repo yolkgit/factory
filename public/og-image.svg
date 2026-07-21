@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a55c4"/>
+      <stop offset="1" stop-color="#256ef4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <text x="600" y="250" fill="#ffffff" font-family="Malgun Gothic, sans-serif" font-size="82" font-weight="800" text-anchor="middle">산업분류코드 조회</text>
+  <text x="600" y="330" fill="#dce7ff" font-family="Malgun Gothic, sans-serif" font-size="40" font-weight="600" text-anchor="middle">KSIC 11차 · 업종코드 · 경비율 · 산재요율</text>
+  <text x="600" y="392" fill="#dce7ff" font-family="Malgun Gothic, sans-serif" font-size="40" font-weight="600" text-anchor="middle">중소기업 기준 · 산업분류코드별 전국 기업검색</text>
+  <g transform="translate(600 480)">
+    <rect x="-230" y="0" width="460" height="70" rx="35" fill="#ffffff"/>
+    <text x="0" y="47" fill="#256ef4" font-family="Malgun Gothic, sans-serif" font-size="34" font-weight="700" text-anchor="middle">물품·업종명으로 코드 바로 조회</text>
+  </g>
+</svg>
