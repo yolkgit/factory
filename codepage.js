@@ -246,4 +246,17 @@ function sectionsNavHtml() {
   return secs.map((n) => `<a href="/code/${n.code}">${esc(n.code)}. ${esc(n.name.replace(/\(.*\)$/, '').trim())}</a>`).join('\n');
 }
 
-module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, hasCode: (c) => NODES.has(c) };
+// 사업성 검토용 헬퍼 (server.js에서 재사용)
+function to10th(code) {
+  const o = NEW2OLD.get(code);
+  if (o && o.length) return [...new Set(o.map((x) => x.old))];
+  return [code];
+}
+function siblings(code) {
+  const n = NODES.get(code);
+  if (!n || !n.parent) return [];
+  return (CHILDREN.get(n.parent) || []).map((c) => ({ code: c, name: NODES.get(c).name }));
+}
+function getNode(code) { return NODES.get(code) || null; }
+
+module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };

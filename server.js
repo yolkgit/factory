@@ -137,6 +137,84 @@ app.get('/api/company', async (req, res) => {
   }
 });
 
+// ---- 사업성 검토(팩트 시트) 집계: 전국등록공장 데이터로 공급/규모/지역/입지 분포를 matchCount로 집계 ----
+const REGIONS = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충청북', '충청남', '전라북', '전라남', '경상북', '경상남', '제주'];
+const REGION_LABEL = { 서울: '서울', 부산: '부산', 대구: '대구', 인천: '인천', 광주: '광주', 대전: '대전', 울산: '울산', 세종: '세종', 경기: '경기', 강원: '강원', 충청북: '충북', 충청남: '충남', 전라북: '전북', 전라남: '전남', 경상북: '경북', 경상남: '경남', 제주: '제주' };
+const SCALES = ['소기업', '중기업', '대기업'];
+const SEOLLIP = ['일반', '일반산업단지', '국가산업단지', '지식산업센터', '창업'];
+const EMP_BUCKETS = [
+  { label: '무고용·미기재', min: 0, max: 0 },
+  { label: '1~9명', min: 1, max: 9 },
+  { label: '10~49명', min: 10, max: 49 },
+  { label: '50명 이상', min: 50, max: null },
+];
+const feasibilityCache = new Map(); // code -> { ts, data }
+const FEAS_TTL = 24 * 3600 * 1000;
+
+async function odCount(conds) {
+  const qs = new URLSearchParams({ serviceKey: FACTORY_KEY, page: '1', perPage: '1' });
+  for (const [k, v] of conds) qs.append(k, v);
+  const r = await fetch(`${COMPANY_BASE}?${qs}`, { signal: AbortSignal.timeout(15000) });
+  const j = await r.json().catch(() => ({}));
+  if (j && j.code && j.code < 0) throw new Error(j.msg || 'api_error');
+  return Number(j.matchCount || 0);
+}
+// 동시 실행 상한
+async function runLimited(tasks, limit) {
+  const results = new Array(tasks.length);
+  let i = 0;
+  async function worker() { while (i < tasks.length) { const idx = i++; results[idx] = await tasks[idx](); } }
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+  return results;
+}
+
+app.get('/api/feasibility', async (req, res) => {
+  if (!FACTORY_KEY) return res.status(503).json({ ok: false, reason: 'no_key' });
+  const code = String(req.query.code || '').trim();
+  if (!codepage.hasCode(code)) return res.status(400).json({ ok: false, reason: 'bad_code', message: '유효한 산업분류코드가 아닙니다.' });
+
+  const cached = feasibilityCache.get(code);
+  if (cached && Date.now() - cached.ts < FEAS_TTL) return res.json(cached.data);
+
+  const oldCodes = codepage.to10th(code); // 10차 대표업종 코드(들)
+  // 특정 조건에 대해 oldCodes 전체 합산
+  const sumOld = (extra) => oldCodes.map((oc) => () => odCount([['cond[대표업종::EQ]', oc], ...extra]));
+
+  try {
+    // 태스크 구성
+    const jobs = [];
+    const add = (fns) => { const start = jobs.length; jobs.push(...fns); return [start, jobs.length]; };
+    const totalR = add(sumOld([]));
+    const scaleR = SCALES.map((v) => add(sumOld([['cond[공장규모::EQ]', v]])));
+    const empR = EMP_BUCKETS.map((b) => add(sumOld(b.max == null ? [['cond[종업원합계::GTE]', String(b.min)]] : [['cond[종업원합계::GTE]', String(b.min)], ['cond[종업원합계::LTE]', String(b.max)]])));
+    const regionR = REGIONS.map((rg) => add(sumOld([['cond[시도명::LIKE]', rg]])));
+    const seollipR = SEOLLIP.map((v) => add(sumOld([['cond[설립구분::EQ]', v]])));
+    // 형제 코드(같은 세분류) — 최대 10개
+    const sibs = codepage.siblings(code).slice(0, 12);
+    const sibR = sibs.map((s) => add(codepage.to10th(s.code).map((oc) => () => odCount([['cond[대표업종::EQ]', oc]]))));
+
+    const out = await runLimited(jobs, 6);
+    const sum = ([a, b]) => out.slice(a, b).reduce((x, y) => x + (y || 0), 0);
+
+    const total = sum(totalR);
+    const scale = SCALES.map((v, i) => ({ label: v, count: sum(scaleR[i]) }));
+    const employee = EMP_BUCKETS.map((b, i) => ({ label: b.label, count: sum(empR[i]) }));
+    const region = REGIONS.map((rg, i) => ({ label: REGION_LABEL[rg], count: sum(regionR[i]) })).sort((a, b) => b.count - a.count);
+    let seollip = SEOLLIP.map((v, i) => ({ label: v, count: sum(seollipR[i]) }));
+    const seollipSum = seollip.reduce((x, y) => x + y.count, 0);
+    if (total - seollipSum > 0) seollip.push({ label: '기타', count: total - seollipSum });
+    seollip = seollip.filter((s) => s.count > 0).sort((a, b) => b.count - a.count);
+    const siblings = sibs.map((s, i) => ({ code: s.code, name: s.name, count: sum(sibR[i]), current: s.code === code })).sort((a, b) => b.count - a.count);
+
+    const data = { ok: true, code, oldCodes, total, scale, employee, region, seollip, siblings };
+    feasibilityCache.set(code, { ts: Date.now(), data });
+    res.json(data);
+  } catch (e) {
+    const reason = /등록되지 않은/.test(String(e.message)) ? 'dataset_not_activated' : 'fetch_error';
+    res.status(502).json({ ok: false, reason, message: String(e.message || e) });
+  }
+});
+
 // 인증키 설정 여부만 클라이언트에 알림(키 값은 노출하지 않음)
 app.get('/api/factory/status', (req, res) => {
   res.json({ enabled: !!FACTORY_KEY });

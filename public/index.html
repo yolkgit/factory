@@ -264,6 +264,47 @@
   .fpager { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0; font-size: 13px; color: #6b7684; }
   .fpage { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 6px 14px; cursor: pointer; color: var(--blue); }
   .fpage:hover { border-color: var(--blue); }
+  /* 사업성 검토 */
+  .fe-head { margin-top: 16px; }
+  .fe-title { font-size: 18px; font-weight: 700; }
+  .fe-title .fe-code { font-family: "Consolas", monospace; color: var(--blue); }
+  .fe-tag { font-size: 11.5px; background: #eef0f4; color: #6b7684; border-radius: 20px; padding: 2px 9px; margin-left: 6px; font-weight: 600; vertical-align: middle; }
+  .fe-warn { margin-top: 10px; background: #fff7ed; border: 1px solid #f6d9b8; color: #9a5b1b; border-radius: 10px; padding: 11px 13px; font-size: 13px; line-height: 1.6; }
+  .fe-conv { margin-top: 8px; font-size: 12.5px; color: #c05621; }
+  .fe-sec { margin-top: 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px 16px; }
+  .fe-sec h3 { margin: 0 0 6px; font-size: 15.5px; }
+  .fe-sec h4 { margin: 12px 0 6px; font-size: 13px; color: #4a5568; }
+  .fe-sub { font-size: 12px; color: #9aa3b0; font-weight: 400; }
+  .fe-big { font-size: 15px; color: #4a5568; margin: 4px 0 2px; }
+  .fe-big .n { font-size: 34px; font-weight: 800; color: var(--blue); }
+  .fe-big .u { font-size: 14px; }
+  .fe-badge { font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 3px 11px; margin-left: 8px; vertical-align: middle; }
+  .fe-badge.lo { background: #e8f4ea; color: #2b7a3d; }
+  .fe-badge.mid { background: #eef3fe; color: #1a55c4; }
+  .fe-badge.hi { background: #fdf1e7; color: #c05621; }
+  .fe-badge.vhi { background: #fdeaea; color: #c0392b; }
+  .fe-cap { font-size: 12.5px; color: #6b7684; line-height: 1.65; margin: 6px 0 10px; }
+  .fe-note { font-size: 11.5px; color: #9aa3b0; line-height: 1.6; margin: 8px 0 0; }
+  .brow { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12.5px; }
+  .blab { width: 40%; color: #3d4a5c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btrack { flex: 1; background: #f1f4f9; border-radius: 5px; height: 15px; overflow: hidden; }
+  .bar { height: 100%; background: #9db8ee; border-radius: 5px; }
+  .bar.hl { background: var(--blue); }
+  .bval { width: 92px; text-align: right; color: #4a5568; font-variant-numeric: tabular-nums; }
+  .bval .brt { color: #9aa3b0; font-size: 11px; }
+  .fe-stack { display: flex; height: 26px; border-radius: 6px; overflow: hidden; margin: 4px 0 8px; background: #f1f4f9; }
+  .fe-stack .seg { color: #fff; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+  .seg.s-소기업, i.s-소기업 { background: #4f86e8; }
+  .seg.s-중기업, i.s-중기업 { background: #f0a54a; }
+  .seg.s-대기업, i.s-대기업 { background: #c0596a; }
+  .fe-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #4a5568; }
+  .fe-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+  .fe-kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #f1f4f9; }
+  .fe-kv .k { color: #4a5568; } .fe-kv .v { color: #1c2430; font-weight: 600; text-align: right; }
+  .fe-caveats { margin-top: 18px; background: #f8fafc; border: 1px solid #eef1f6; border-radius: 10px; padding: 12px 15px; font-size: 11.5px; color: #6b7684; }
+  .fe-caveats b { color: #4a5568; }
+  .fe-caveats ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.7; }
+  .fe-src { margin-top: 8px; color: #9aa3b0; }
   .oldhit {
     margin-top: 7px; font-size: 12.5px; color: #c05621; background: #fdf6f0;
     border: 1px solid #f5dcc8; border-radius: 8px; padding: 5px 9px; display: inline-block;
@@ -347,6 +388,7 @@
     <button class="tab active" id="tab-search" onclick="switchTab('search')">코드 검색</button>
     <button class="tab" id="tab-browse" onclick="switchTab('browse')">분류 탐색</button>
     <button class="tab" id="tab-factory" onclick="switchTab('factory')">공장 조회</button>
+    <button class="tab" id="tab-feasibility" onclick="switchTab('feasibility')">사업성 검토</button>
   </div>
   <div id="panel-search">
     <div class="hint" id="hint">데이터 불러오는 중…</div>
@@ -385,6 +427,17 @@
       <div class="fnote">공장등록생산정보조회서비스 기반. 공개 API는 <b>회사명 기준</b>으로 조회하며, 생산품·지역은 추가 필터입니다.</div>
     </div>
     <div id="factory-results"></div>
+  </div>
+  <div id="panel-feasibility" style="display:none;">
+    <div class="fsearch">
+      <div class="frow">
+        <input id="fe-code" type="text" placeholder="산업분류코드 5자리 (예: 10602)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')feasibilitySearch()" />
+        <button onclick="feasibilitySearch()">사업성 분석</button>
+      </div>
+      <div class="fnote">생산하려는 제품의 산업분류코드로 <b>전국 등록공장 기반 공급·규모·지역 통계</b>와 세무·규제 참고수치를 봅니다. 매출·수요·수익은 추정하지 않는 참고용 팩트 시트입니다.</div>
+    </div>
+    <div id="feasibility-results"></div>
   </div>
   <section class="seo-about">
     <h2>산업분류코드 조회란?</h2>
@@ -836,7 +889,7 @@ function cardHTML(r, query) {
     ${r.node.level === 5 ? descHTML(r.code) + oldnewHTML(r.code) + smeHTML(r.code) + sanjaeHTML(r.code) + upjongHTML(r.code) : ''}
     ${oldHit}
     ${chips ? `<div class="chips">${chips}${moreCnt}</div>` : ''}
-    ${r.node.level === 5 ? `<div class="cardbtns"><button class="factorybtn" onclick="event.stopPropagation();findFactoriesFor('${r.code}')">🏭 이 업종 기업 검색</button></div>` : ''}
+    ${r.node.level === 5 ? `<div class="cardbtns"><button class="factorybtn" onclick="event.stopPropagation();findFactoriesFor('${r.code}')">🏭 이 업종 기업 검색</button><button class="factorybtn" onclick="event.stopPropagation();openFeasibility('${r.code}')">📊 사업성 검토</button></div>` : ''}
     ${r.node.level === 5 || (CHILDREN.get(r.code) || []).length ? '<div class="detailhint">▸ 클릭하면 관련 분류·색인어를 볼 수 있습니다</div>' : ''}
     <div class="detail" id="detail-${r.code}"></div>
   </div>`;
@@ -984,10 +1037,180 @@ function exportCSV() {
 
 /* ---------- 분류 탐색 트리 ---------- */
 function switchTab(tab) {
-  for (const t of ['search', 'browse', 'factory']) {
+  for (const t of ['search', 'browse', 'factory', 'feasibility']) {
     document.getElementById('tab-' + t).classList.toggle('active', tab === t);
     document.getElementById('panel-' + t).style.display = tab === t ? '' : 'none';
   }
+}
+
+/* ---------- 사업성 검토 (참고용 팩트 시트) ---------- */
+function openFeasibility(code) {
+  if (!NODES.has(code)) return;
+  switchTab('feasibility');
+  document.getElementById('fe-code').value = code;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  loadFeasibility(code);
+}
+function feasibilitySearch() {
+  const code = document.getElementById('fe-code').value.trim();
+  if (!NODES.has(code)) {
+    document.getElementById('feasibility-results').innerHTML =
+      '<div class="empty">유효한 산업분류코드(11차 세세분류 5자리)를 입력하세요.<br/>코드 검색 탭에서 찾은 코드를 넣어보세요.</div>';
+    return;
+  }
+  loadFeasibility(code);
+}
+
+const FEAS_CAVEATS = [
+  '이 탭은 창업·제조 사업 검토용 참고 지표이며, 매출·수요·시장규모·수익성 데이터는 포함하지 않습니다. 사업성·투자수익을 보장하지 않습니다.',
+  '‘공장 수’는 산업단지공단에 등록된 공장(대표업종 기준) 수로, 공급·경쟁 밀도의 대리지표입니다. 손님 수·수요·매출이 아닙니다.',
+  '연도별 신규 진입·창업 추이는 제공하지 않습니다(원본 등록일이 2019년까지만 채워져 있어 왜곡됨).',
+  '경비율은 종합소득세 추계신고용 세무상 비율이며 실제 마진·이익률이 아닙니다.',
+  '산재보험료율·중소기업 규모 기준은 근사·법령 기준값이며 개정될 수 있습니다.',
+  '공장데이터는 10차 분류라 11차 입력을 신구연계로 변환해 조회하며, 복수 매핑 시 합산합니다.',
+];
+
+function densityBadge(total) {
+  if (total <= 30) return { t: '드묾', c: 'lo' };
+  if (total <= 150) return { t: '보통', c: 'mid' };
+  if (total <= 500) return { t: '많음', c: 'hi' };
+  return { t: '매우 많음', c: 'vhi' };
+}
+function barRow(label, count, max, opts) {
+  opts = opts || {};
+  const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+  const ratio = opts.totalForPct ? ` <span class="brt">${((count / opts.totalForPct) * 100).toFixed(1)}%</span>` : '';
+  const cls = opts.highlight ? 'bar hl' : 'bar';
+  const link = opts.code ? ` onclick="searchCode('${opts.code}')" style="cursor:pointer"` : '';
+  return `<div class="brow"${link}><div class="blab">${esc(label)}</div>
+    <div class="btrack"><div class="${cls}" style="width:${Math.max(pct, count > 0 ? 2 : 0)}%"></div></div>
+    <div class="bval">${count.toLocaleString()}${ratio}</div></div>`;
+}
+
+async function loadFeasibility(code) {
+  const node = NODES.get(code);
+  const el = document.getElementById('feasibility-results');
+  el.innerHTML = `<div class="loading">${esc(code)} ${esc(node.name)} 사업성 자료를 집계하고 있습니다…<br/><span style="font-size:12px;color:#9aa3b0">전국 공장·지역·규모 분포 조회 중 (수 초 소요)</span></div>`;
+  let d;
+  try {
+    const r = await fetch('api/feasibility?code=' + encodeURIComponent(code));
+    d = await r.json();
+  } catch (e) {
+    el.innerHTML = `<div class="empty">조회 중 오류가 발생했습니다.<br/>${esc(String(e))}</div>`;
+    return;
+  }
+  if (!d.ok) {
+    if (d.reason === 'dataset_not_activated') {
+      el.innerHTML = `<div class="empty">이 기능은 <b>전국등록공장현황</b> 데이터셋(15105482) 활용신청이 필요합니다.</div>`;
+    } else if (d.reason === 'no_key') {
+      el.innerHTML = `<div class="empty">공장 데이터 인증키가 설정되지 않았습니다.</div>`;
+    } else {
+      el.innerHTML = `<div class="empty">집계 오류: ${esc(d.message || d.reason || '알 수 없음')}</div>`;
+    }
+    return;
+  }
+  el.innerHTML = renderFeasibility(code, d);
+}
+
+function renderFeasibility(code, d) {
+  const node = NODES.get(code);
+  const badge = densityBadge(d.total);
+  const convNote = (d.oldCodes.length > 1 || d.oldCodes[0] !== code)
+    ? `<div class="fe-conv">공장 등록자료는 10차 분류 기준이라 <b>${esc(d.oldCodes.join(', '))}</b>(10차 대표업종)로 조회${d.oldCodes.length > 1 ? '·합산' : ''}했습니다.${d.oldCodes.length > 1 ? ' 복수 코드 합산이라 실제와 차이가 있을 수 있습니다.' : ''}</div>`
+    : '';
+
+  // 머리말 고지
+  let h = `<div class="fe-head">
+    <div class="fe-title"><span class="fe-code">${esc(code)}</span> ${esc(node.name)}
+      <span class="fe-tag">참고용 팩트 시트</span></div>
+    <div class="fe-warn">매출·영업이익·시장규모·수요·성장률·폐업률·창업 성공률 데이터는 <b>없습니다</b>. 이 탭은 이를 추정하지 않으며, <b>점수·등급·추천도 제공하지 않습니다</b>.</div>
+    ${convNote}
+  </div>`;
+
+  // 공급·경쟁
+  const regionMax = Math.max(1, ...d.region.map((r) => r.count));
+  const top3 = d.region.slice(0, 3).reduce((a, b) => a + b.count, 0);
+  const activeRegions = d.region.filter((r) => r.count > 0).length;
+  const concPct = d.total > 0 ? Math.round((top3 / d.total) * 100) : 0;
+
+  h += `<div class="fe-sec">
+    <h3>공급·경쟁 밀집도</h3>
+    <div class="fe-big"><span class="n">${d.total.toLocaleString()}</span> 개 <span class="u">등록공장</span>
+      <span class="fe-badge ${badge.c}">${badge.t}</span></div>
+    <p class="fe-cap">이미 이걸 대표업종으로 등록한 공장 수입니다. 손님·수요가 아니라, <b>같은 걸 만드는 곳이 몇 곳인지</b>입니다. 경쟁 밀도의 사실 표기이며 좋음/나쁨 판정이 아닙니다(많음=판이 큼일 수도, 포화일 수도).</p>`;
+
+  if (d.siblings && d.siblings.length > 1) {
+    const sMax = Math.max(1, ...d.siblings.map((s) => s.count));
+    h += `<h4>같은 세분류 내 품목별 공장 수</h4>
+      ${d.siblings.map((s) => barRow(s.code + ' ' + s.name, s.count, sMax, { highlight: s.current, code: s.code })).join('')}
+      <p class="fe-note">형제 품목은 서로 다른 제품이라 직접 경쟁이 아닐 수 있습니다(상대 밀도 감각용).</p>`;
+  }
+  h += `</div>`;
+
+  // 지역
+  h += `<div class="fe-sec">
+    <h3>지역 분포 <span class="fe-sub">등록공장 소재지</span></h3>
+    <p class="fe-cap">상위 3개 지역이 전체의 <b>${concPct}%</b>. 공장이 1곳 이상인 지역 ${activeRegions}곳. ‘그 지역 수요’가 아니라 <b>그 지역에 등록된 공장 수(공급 밀집)</b>이며 인구·산업규모는 보정하지 않았습니다.</p>
+    ${d.region.filter((r) => r.count > 0).map((r) => barRow(r.label, r.count, regionMax, { totalForPct: d.total })).join('')}
+  </div>`;
+
+  // 규모·고용
+  const scaleTotal = d.scale.reduce((a, b) => a + b.count, 0) || 1;
+  const empMax = Math.max(1, ...d.employee.map((e) => e.count));
+  h += `<div class="fe-sec">
+    <h3>사업 규모·고용 구조</h3>
+    <h4>공장규모 분포</h4>
+    <div class="fe-stack">${d.scale.map((s) => {
+      const w = (s.count / scaleTotal) * 100;
+      return s.count > 0 ? `<div class="seg s-${s.label}" style="width:${w}%" title="${s.label} ${s.count}개">${w >= 12 ? s.label + ' ' + s.count : ''}</div>` : '';
+    }).join('')}</div>
+    <div class="fe-legend">${d.scale.map((s) => `<span><i class="s-${s.label}"></i>${s.label} ${s.count.toLocaleString()}개 (${((s.count / scaleTotal) * 100).toFixed(0)}%)</span>`).join('')}</div>
+    <p class="fe-note">‘공장규모’는 산업단지공단 등록상 분류이며 중소기업기본법 매출기준과 정의가 다릅니다. 규모=수익성이 아닙니다.</p>
+    <h4 style="margin-top:14px">고용 규모 분포</h4>
+    ${d.employee.map((e) => barRow(e.label, e.count, empMax, { totalForPct: d.total })).join('')}
+    <p class="fe-note">‘무고용·미기재’에는 미신고가 섞일 수 있습니다. 소수 대형공장이 평균을 왜곡하므로 평균 종업원 수는 제공하지 않습니다.</p>
+  </div>`;
+
+  // 입지
+  if (d.seollip && d.seollip.length) {
+    const seolMax = Math.max(1, ...d.seollip.map((s) => s.count));
+    h += `<div class="fe-sec">
+      <h3>입지 유형 <span class="fe-sub">설립구분</span></h3>
+      ${d.seollip.map((s) => barRow(s.label, s.count, seolMax, { totalForPct: d.total })).join('')}
+      <p class="fe-note">‘창업’은 설립유형 라벨일 뿐 최근 창업 활발도가 아닙니다. 산업단지 비중이 높으면 입지 규제·분양 조건을 확인하세요.</p>
+    </div>`;
+  }
+
+  // 세무: 경비율 (클라이언트 내장 데이터)
+  const ups = UPJONG_BY_K.get(code) || [];
+  const gRows = ups.filter((o) => GYEONGBI[o.u]).slice(0, 6).map((o) => {
+    const g = GYEONGBI[o.u];
+    return `<div class="fe-kv"><span class="k">${esc(o.u)} ${esc(o.un)}</span>
+      <span class="v">단순 ${pct(g[0])}${g[1] ? ` (초과 ${pct(g[1])})` : ''} · 기준 ${pct(g[2])}</span></div>`;
+  }).join('');
+  if (gRows) {
+    h += `<div class="fe-sec">
+      <h3>세무 참고: 경비율 <span class="fe-sub">≠ 마진</span></h3>
+      ${gRows}
+      <p class="fe-note"><b>경비율은 종합소득세 추계신고용 비율(2025 귀속)이지 실제 원가·마진이 아닙니다.</b> ‘경비율 90% → 마진 10%’처럼 계산하지 마세요. 단순경비율과 기준경비율은 신고방식이 다른 별개 제도라 서로 빼거나 비교하지 않습니다.</p>
+    </div>`;
+  }
+
+  // 규제·비용
+  const sj = sanjaeRate(code);
+  const sme = smeInfo(code);
+  if (sj || sme) {
+    h += `<div class="fe-sec"><h3>규제·비용 참고수치</h3>`;
+    if (sj) h += `<div class="fe-kv"><span class="k">산재보험료율(2026, 근사)</span><span class="v">약 ${sj.rate}‰ (1,000분의 ${sj.rate})${sj.label ? ` · ${esc(sj.label)}` : ''}</span></div>`;
+    if (sme) h += `<div class="fe-kv"><span class="k">중소기업 규모 기준</span><span class="v">${sme.sme !== undefined ? `중소기업 ${sme.sme.toLocaleString()}억원 이하` : ''}${sme.small !== undefined ? ` · 소기업 ${sme.small.toLocaleString()}억원 이하` : ''}</span></div>`;
+    h += `<p class="fe-note">산재요율은 근로복지공단 사업종류 기준 근사값, 중소기업 기준은 ‘평균매출액등’ 기준(자격·지원 판정용)이라 목표매출·손익분기가 아닙니다.</p></div>`;
+  }
+
+  // 전역 주의
+  h += `<div class="fe-caveats"><b>데이터·해석 주의</b><ul>${FEAS_CAVEATS.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
+    <div class="fe-src">출처: 전국등록공장현황(한국산업단지공단, 2024.12.31 기준) · 국세청 경비율(2025 귀속) · 고용노동부 산재보험료율(2026) · 중소기업기본법 시행령</div></div>`;
+
+  return h;
 }
 
 /* ---------- 공장 조회 (한국산업단지공단 오픈API 프록시) ---------- */
