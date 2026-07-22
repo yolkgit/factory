@@ -410,7 +410,7 @@
           onkeypress="if(event.key==='Enter')companySearch(1)" />
         <button onclick="companySearch(1)">기업 검색</button>
       </div>
-      <div class="fnote">전국등록공장현황(한국산업단지공단) 기반. 해당 <b>산업분류코드로 등록된 전국 기업</b>을 조회합니다. 코드 검색 결과의 “이 업종 기업 검색” 버튼으로도 연결됩니다.</div>
+      <div class="fnote">전국등록공장현황(한국산업단지공단) 기반. 해당 산업분류코드를 <b>주업종(대표업종)으로 등록한 전국 기업</b>을 조회합니다. 데이터 구조상 <b>부업종으로만 그 품목을 만드는 업체는 포함되지 않습니다</b>(실제 생산 업체는 이보다 많을 수 있음). 코드 검색 결과의 “이 업종 기업 검색” 버튼으로도 연결됩니다.</div>
     </div>
     <div class="fsearch" id="fform-name" style="display:none;">
       <div class="frow">
@@ -1137,7 +1137,7 @@ function renderFeasibility(code, d) {
     <h3>공급·경쟁 밀집도</h3>
     <div class="fe-big"><span class="n">${d.total.toLocaleString()}</span> 개 <span class="u">등록공장</span>
       <span class="fe-badge ${badge.c}">${badge.t}</span></div>
-    <p class="fe-cap">이미 이걸 대표업종으로 등록한 공장 수입니다. 손님·수요가 아니라, <b>같은 걸 만드는 곳이 몇 곳인지</b>입니다. 경쟁 밀도의 사실 표기이며 좋음/나쁨 판정이 아닙니다(많음=판이 큼일 수도, 포화일 수도).</p>`;
+    <p class="fe-cap">이 코드를 <b>주업종(대표업종)으로 등록한</b> 공장 수입니다. 손님·수요가 아니라, <b>같은 걸 만드는 곳이 몇 곳인지</b>입니다. <b>부업종으로만 이 품목을 만드는 업체는 빠져 있어 실제 생산 업체는 더 많을 수 있습니다.</b> 경쟁 밀도의 사실 표기이며 좋음/나쁨 판정이 아닙니다(많음=판이 큼일 수도, 포화일 수도).</p>`;
 
   if (d.siblings && d.siblings.length > 1) {
     const sMax = Math.max(1, ...d.siblings.map((s) => s.count));
