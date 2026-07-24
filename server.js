@@ -298,7 +298,10 @@ app.get('/llms.txt', (req, res) => {
 // 정식 URL(canonical/OG)을 주입해 index.html 제공 — 크롤러가 정적 메타를 읽도록
 function serveIndex(req, res) {
   res.type('html').send(
-    INDEX_HTML.replace(/%%SITE_URL%%/g, siteUrl(req)).replace('%%SECTIONS%%', codepage.sectionsNavHtml())
+    INDEX_HTML
+      .replace(/%%SITE_URL%%/g, siteUrl(req))
+      .replace('%%SECTIONS%%', codepage.sectionsNavHtml())
+      .replace('%%AD_SLOT%%', codepage.adSlotHtml())
   );
 }
 app.get('/', serveIndex);

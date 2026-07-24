@@ -5,6 +5,16 @@ const path = require('path');
 
 const DATA = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'ksic-data.json'), 'utf8'));
 
+// 쿠팡 파트너스 광고 슬롯(ad-slot.html) — 주석만 있으면 미표시. 광고 시 법정 고지문구 자동 부착.
+let AD_RAW = '';
+try { AD_RAW = fs.readFileSync(path.join(__dirname, 'ad-slot.html'), 'utf8'); } catch (e) { AD_RAW = ''; }
+function adSlotHtml() {
+  const stripped = AD_RAW.replace(/<!--[\s\S]*?-->/g, '').trim();
+  if (!stripped) return '';
+  return `<div class="ad-slot"><div class="ad-label">광고 · 쿠팡 파트너스</div>${AD_RAW}` +
+    `<div class="ad-disc">본 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따라 일정액의 수수료를 제공받습니다.</div></div>`;
+}
+
 const LV_NAME = { 1: '대분류', 2: '중분류', 3: '소분류', 4: '세분류', 5: '세세분류' };
 
 const NODES = new Map();
@@ -226,6 +236,9 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   table.kv td{padding:9px 12px;border-top:1px solid #eef1f6}
   .cta{margin-top:22px;background:#f5f9ff;border:1px solid #d6e0f5;border-radius:10px;padding:12px 14px;font-size:14px}
   footer{margin-top:30px;font-size:11.5px;color:#9aa3b0;text-align:center}
+  .ad-slot{margin-top:26px;padding:12px;border:1px solid #eef1f6;border-radius:12px;background:#fbfcfe;text-align:center}
+  .ad-label{font-size:11px;color:#b3bac6;margin-bottom:8px;letter-spacing:.3px}
+  .ad-disc{font-size:11px;color:#9aa3b0;margin-top:8px}
 </style>
 </head>
 <body>
@@ -234,6 +247,7 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   <nav class="bc">${breadcrumbHtml}</nav>
   <h1><span class="c">${esc(code)}</span> ${esc(node.name)}<span class="lv">${LV_NAME[node.level]}</span></h1>
   ${body}
+  ${adSlotHtml()}
   <footer>출처: 통계청 한국표준산업분류(KSIC 11차) · 국세청·고용노동부·한국산업단지공단 자료 기반 · 참고용</footer>
 </div>
 </body>
@@ -259,4 +273,4 @@ function siblings(code) {
 }
 function getNode(code) { return NODES.get(code) || null; }
 
-module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };
+module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, adSlotHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };
