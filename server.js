@@ -24,7 +24,16 @@ const FACTORY_KEY = process.env.FACTORY_API_KEY || '';
 const FACTORY_BASE = 'https://apis.data.go.kr/B550624/fctryRegistInfo';
 // 전국등록공장현황 파일데이터(업종코드 포함) odcloud API — 업종코드로 기업 조회에 사용
 // data.go.kr 데이터셋 15105482 활용신청 시 같은 인증키로 동작
-const COMPANY_BASE = 'https://api.odcloud.kr/api/15105482/v1/uddi:67329811-dbc4-4c82-b3b1-9e6f25721e6e';
+// 전국등록공장현황 파일데이터(odcloud). 데이터셋이 연 1회 갱신되면 scripts/check-factory-dataset.js가
+// data/factory-dataset.json에 최신 uddi를 기록하고, 아래에서 그 값을 우선 사용한다.
+const FACTORY_DATASET = (() => {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'factory-dataset.json'), 'utf8'));
+    if (j && typeof j.uddi === 'string' && j.uddi.startsWith('uddi:')) return j;
+  } catch (e) { /* 파일 없으면 기본값 사용 */ }
+  return { uddi: 'uddi:67329811-dbc4-4c82-b3b1-9e6f25721e6e', total: null };
+})();
+const COMPANY_BASE = `https://api.odcloud.kr/api/15105482/v1/${FACTORY_DATASET.uddi}`;
 
 app.use(compression());
 

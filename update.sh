@@ -19,6 +19,14 @@ cp public/ksic-data.json public/ksic-data.json.bak
 
 # 2) node 컨테이너에서 크롤 + 빌드 (파일 소유권을 호스트 사용자로 유지)
 UID_GID="$(id -u):$(id -g)"
+# 공장 데이터셋(연 1회 갱신) 최신 파일 확인 — 실패해도 전체 업데이트는 계속(기존 설정 유지)
+if [ -f .env ]; then set -a; . ./.env; set +a; fi
+docker run --rm -u "$UID_GID" -e HOME=/tmp -e npm_config_cache=/tmp/.npm \
+  -e FACTORY_API_KEY="${FACTORY_API_KEY:-}" \
+  -v "$PWD":/app -w /app node:22-alpine \
+  node scripts/check-factory-dataset.js >> "$LOG" 2>&1 \
+  || log "공장 데이터셋 확인 실패(기존 설정 유지)"
+
 if docker run --rm -u "$UID_GID" -e HOME=/tmp -e npm_config_cache=/tmp/.npm \
      -v "$PWD":/app -w /app node:22-alpine \
      sh -c "npm ci --no-audit --no-fund --loglevel=error && npm run crawl && npm run build-all" \
