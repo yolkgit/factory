@@ -5,8 +5,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY server.js codepage.js ad-slot.html ./
+COPY server.js codepage.js jobpage.js ad-slot.html ./
 COPY public/ ./public/
+COPY data/ ./data/
 
 ENV PORT=3000
 
