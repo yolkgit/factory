@@ -15,6 +15,8 @@ function siteUrl(req) {
 }
 const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
 const codepage = require('./codepage');
+const jobpage = require('./jobpage');
+jobpage.setAdSlot(codepage.adSlotHtml); // 광고 슬롯 공유
 
 // 한국산업단지공단 공장등록생산정보조회서비스 (data.go.kr 오픈API)
 // FACTORY_API_KEY: data.go.kr에서 발급받은 '일반 인증키(Decoding)'를 환경변수로 주입
@@ -261,8 +263,24 @@ app.get('/sitemap.xml', (req, res) => {
   for (const code of codepage.CODES_ALL()) {
     xml += `  <url><loc>${base}/code/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
   }
+  // 직업분류(KSCO)
+  xml += `  <url><loc>${base}/job</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>\n`;
+  for (const code of jobpage.CODES_ALL()) {
+    xml += `  <url><loc>${base}/job/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+  }
   xml += `</urlset>\n`;
   res.type('application/xml').send(xml);
+});
+
+// 직업분류(KSCO) 인덱스·코드별 SSR 페이지
+app.get('/job', (req, res) => {
+  res.type('html').send(jobpage.renderJobIndex(siteUrl(req)));
+});
+app.get('/job/:code', (req, res) => {
+  const code = String(req.params.code || '').trim();
+  const html = jobpage.renderJobPage(code, siteUrl(req));
+  if (!html) return res.status(404).type('html').send('<meta charset="utf-8"><p>존재하지 않는 직업분류코드입니다. <a href="/job">직업분류 목록</a></p>');
+  res.type('html').send(html);
 });
 
 // 산업분류코드별 SSR 페이지
