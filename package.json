@@ -10,6 +10,7 @@
     "build-upjong": "node scripts/build-upjong.js",
     "build-gyeongbi": "node scripts/build-gyeongbi.js",
     "check-factory-dataset": "node scripts/check-factory-dataset.js",
+    "indexnow": "node scripts/indexnow.js",
     "build-data": "node scripts/build-data.js"
   },
   "license": "ISC",
