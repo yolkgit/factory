@@ -319,6 +319,8 @@ function serveIndex(req, res) {
     INDEX_HTML
       .replace(/%%SITE_URL%%/g, siteUrl(req))
       .replace('%%SECTIONS%%', codepage.sectionsNavHtml())
+      .replace('%%SIDENAV%%', codepage.sideNavHtml())
+      .replace('%%AD_SIDE%%', codepage.adSideHtml())
       .replace('%%AD_SLOT%%', codepage.adSlotHtml())
   );
 }

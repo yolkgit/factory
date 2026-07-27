@@ -15,6 +15,16 @@ function adSlotHtml() {
     `<div class="ad-disc">본 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따라 일정액의 수수료를 제공받습니다.</div></div>`;
 }
 
+// 우측 사이드바용 세로형 쿠팡 배너(같은 트래킹코드, 세로 템플릿)
+const AD_SIDE_ID = process.env.COUPANG_SIDE_ID || '965621';
+const AD_TRACKING = process.env.COUPANG_TRACKING || 'AF6584316';
+function adSideHtml() {
+  const stripped = AD_RAW.replace(/<!--[\s\S]*?-->/g, '').trim();
+  if (!stripped) return ''; // 광고 미설정 시 사이드 광고도 미표시
+  return `<iframe src="https://ads-partners.coupang.com/widgets.html?id=${AD_SIDE_ID}&template=carousel&trackingCode=${AD_TRACKING}&subId=&width=160&height=600&tsource=" width="160" height="600" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" browsingtopics></iframe>` +
+    `<div class="side-ad-disc">쿠팡 파트너스 활동으로 일정액의 수수료를 제공받습니다.</div>`;
+}
+
 const LV_NAME = { 1: '대분류', 2: '중분류', 3: '소분류', 4: '세분류', 5: '세세분류' };
 
 const NODES = new Map();
@@ -285,6 +295,15 @@ function sectionsNavHtml() {
   return secs.map((n) => `<a href="/code/${n.code}">${esc(n.code)}. ${esc(n.name.replace(/\(.*\)$/, '').trim())}</a>`).join('\n');
 }
 
+// 좌측 사이드바 카테고리 네비게이션(대분류 A~U)
+function sideNavHtml() {
+  const secs = [...NODES.values()].filter((n) => n.level === 1).sort((a, b) => a.code.localeCompare(b.code));
+  return secs.map((n) => {
+    const nm = n.name.replace(/\(.*\)$/, '').replace(/\s+/g, ' ').trim();
+    return `<a class="sn-item" href="/code/${n.code}"><b>${esc(n.code)}</b> ${esc(nm)}</a>`;
+  }).join('\n');
+}
+
 // 사업성 검토용 헬퍼 (server.js에서 재사용)
 function to10th(code) {
   const o = NEW2OLD.get(code);
@@ -298,4 +317,4 @@ function siblings(code) {
 }
 function getNode(code) { return NODES.get(code) || null; }
 
-module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, adSlotHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };
+module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, sideNavHtml, adSlotHtml, adSideHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };

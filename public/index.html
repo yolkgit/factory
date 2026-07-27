@@ -114,6 +114,25 @@
   header h1 { margin: 0; font-size: 22px; font-weight: 700; }
   header p { margin: 8px 0 0; font-size: 13px; opacity: .85; }
   .wrap { max-width: 780px; margin: 0 auto; padding: 0 14px 60px; }
+  /* 3단 레이아웃: 좌 카테고리 · 중앙 콘텐츠 · 우 광고 */
+  .layout { display: flex; justify-content: center; align-items: flex-start; gap: 18px; max-width: 1400px; margin: 0 auto; }
+  .layout > .wrap { flex: 1 1 780px; min-width: 0; margin: 0; }
+  .side { flex: 0 0 200px; position: sticky; top: 12px; margin-top: -34px; }
+  .side-right { flex: 0 0 190px; }
+  .side-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; margin-bottom: 12px; }
+  .side-title { font-size: 12px; font-weight: 700; color: #8a94a3; margin-bottom: 8px; letter-spacing: .2px; }
+  .side-nav { display: flex; flex-direction: column; gap: 1px; max-height: 62vh; overflow-y: auto; }
+  .sn-item {
+    display: block; font-size: 12.5px; color: #3d4a5c; text-decoration: none;
+    padding: 5px 7px; border-radius: 7px; line-height: 1.35;
+  }
+  .sn-item:hover { background: #f1f5fb; color: var(--blue); }
+  .side-nav::-webkit-scrollbar { width: 5px; }
+  .side-nav::-webkit-scrollbar-thumb { background: #dde3ec; border-radius: 3px; }
+  .side-ad-inner { min-height: 240px; display: flex; justify-content: center; }
+  .side-ad-disc { font-size: 10.5px; color: #b3bac6; margin-top: 7px; line-height: 1.5; }
+  @media (max-width: 1180px) { .side-right { display: none; } }
+  @media (max-width: 980px) { .side-left { display: none; } .layout { display: block; } .layout > .wrap { margin: 0 auto; } }
   .searchbox {
     position: sticky; top: 10px; z-index: 5;
     margin-top: -46px;
@@ -384,6 +403,23 @@
   <p>KSIC 11차 · 해설 · 10차 연계 · 국세청 업종코드/경비율 · 산재보험료율 · 중소기업 기준</p>
 </header>
 
+<div class="layout">
+<aside class="side side-left">
+  <div class="side-box">
+    <div class="side-title">분류 카테고리</div>
+    <nav class="side-nav" id="sideNav">%%SIDENAV%%</nav>
+  </div>
+  <div class="side-box">
+    <div class="side-title">바로가기</div>
+    <nav class="side-nav">
+      <a href="/" class="sn-item">🔎 산업분류코드 검색</a>
+      <a href="/job" class="sn-item">👔 직업분류코드(KSCO)</a>
+      <a href="#" class="sn-item" onclick="event.preventDefault();switchTab('factory');window.scrollTo({top:0,behavior:'smooth'})">🏭 기업·공장 조회</a>
+      <a href="#" class="sn-item" onclick="event.preventDefault();switchTab('feasibility');window.scrollTo({top:0,behavior:'smooth'})">📊 사업성 검토</a>
+    </nav>
+  </div>
+</aside>
+
 <div class="wrap">
   <div class="searchbox">
     <input id="q" type="search" placeholder="물품·업종·KSIC코드·국세청 업종코드 입력 (예: 빵, 아스팔트, 24111, 011000)" autofocus autocomplete="off" />
@@ -484,6 +520,14 @@
     중소기업 기준: 중소기업기본법 시행령 별표1(2025.10.1)·별표3(2025.9.1)<br/>
     본 검색 결과는 참고용이며, 정확한 분류·기준은 각 기관 공식 자료에서 확인하세요.
   </footer>
+</div>
+
+<aside class="side side-right">
+  <div class="side-box side-ad">
+    <div class="side-title">추천 상품</div>
+    <div class="side-ad-inner">%%AD_SIDE%%</div>
+  </div>
+</aside>
 </div>
 <div class="toast" id="toast"></div>
 
