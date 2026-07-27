@@ -17,6 +17,7 @@ const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'),
 const codepage = require('./codepage');
 const jobpage = require('./jobpage');
 jobpage.setAdSlot(codepage.adSlotHtml); // 광고 슬롯 공유
+jobpage.setSidebars(codepage.sidebarsHtml, codepage.SIDEBAR_CSS); // 사이드바 공유
 
 // 한국산업단지공단 공장등록생산정보조회서비스 (data.go.kr 오픈API)
 // FACTORY_API_KEY: data.go.kr에서 발급받은 '일반 인증키(Decoding)'를 환경변수로 주입

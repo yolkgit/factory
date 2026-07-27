@@ -227,6 +227,8 @@ function renderCodePage(code, siteUrl) {
     ? `${node.name} 산업분류코드 ${code} | KSIC 11차 업종코드·경비율`
     : `${node.name} (${code}) ${LV_NAME[node.level]} 산업분류코드 | KSIC 11차`;
 
+  const SIDEBARS = sidebarsHtml({ currentCode: code, active: 'home' });
+
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -271,12 +273,15 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   table.kv td{padding:9px 12px;border-top:1px solid #eef1f6}
   .cta{margin-top:22px;background:#f5f9ff;border:1px solid #d6e0f5;border-radius:10px;padding:12px 14px;font-size:14px}
   footer{margin-top:30px;font-size:11.5px;color:#9aa3b0;text-align:center}
+${SIDEBAR_CSS}
   .ad-slot{margin-top:26px;padding:12px;border:1px solid #eef1f6;border-radius:12px;background:#fbfcfe;text-align:center}
   .ad-label{font-size:11px;color:#b3bac6;margin-bottom:8px;letter-spacing:.3px}
   .ad-disc{font-size:11px;color:#9aa3b0;margin-top:8px}
 </style>
 </head>
 <body>
+<div class="layout">
+${SIDEBARS.left}
 <div class="wrap">
   <div class="top"><a href="/">← 산업분류코드 조회 홈</a></div>
   <nav class="bc">${breadcrumbHtml}</nav>
@@ -284,6 +289,8 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   ${body}
   ${adSlotHtml()}
   <footer>출처: 통계청 한국표준산업분류(KSIC 11차) · 국세청·고용노동부·한국산업단지공단 자료 기반 · 참고용</footer>
+</div>
+${SIDEBARS.right}
 </div>
 </body>
 </html>`;
@@ -295,14 +302,88 @@ function sectionsNavHtml() {
   return secs.map((n) => `<a href="/code/${n.code}">${esc(n.code)}. ${esc(n.name.replace(/\(.*\)$/, '').trim())}</a>`).join('\n');
 }
 
-// 좌측 사이드바 카테고리 네비게이션(대분류 A~U)
-function sideNavHtml() {
-  const secs = [...NODES.values()].filter((n) => n.level === 1).sort((a, b) => a.code.localeCompare(b.code));
-  return secs.map((n) => {
-    const nm = n.name.replace(/\(.*\)$/, '').replace(/\s+/g, ' ').trim();
-    return `<a class="sn-item" href="/code/${n.code}"><b>${esc(n.code)}</b> ${esc(nm)}</a>`;
-  }).join('\n');
+// 좌측 사이드바 카테고리 네비게이션.
+// currentCode가 주어지면 그 경로를 따라 계층을 펼쳐 하위 분류까지 탐색할 수 있게 렌더한다.
+function cleanName(s) {
+  let t = String(s).replace(/\([^)]*\)$/, '').replace(/\s+/g, ' ').trim();
+  if (/^(?:\S ){1,}\S$/.test(t) && t.split(' ').every((w) => w.length === 1)) t = t.replace(/ /g, '');
+  return t;
 }
+function sideNavHtml(currentCode) {
+  const openSet = new Set();
+  if (currentCode && NODES.has(currentCode)) {
+    let cur = NODES.get(currentCode);
+    while (cur) { openSet.add(cur.code); cur = cur.parent ? NODES.get(cur.parent) : null; }
+  }
+  const render = (code, depth) => {
+    const n = NODES.get(code);
+    const kids = CHILDREN.get(code) || [];
+    const isOpen = openSet.has(code);
+    const isCurrent = code === currentCode;
+    const cls = `sn-item${isCurrent ? ' sn-cur' : ''}${depth > 0 ? ' sn-d' + Math.min(depth, 3) : ''}`;
+    const caret = kids.length ? `<span class="sn-caret">${isOpen ? '▾' : '▸'}</span>` : '<span class="sn-caret"></span>';
+    let html = `<a class="${cls}" href="/code/${code}">${caret}<b>${esc(code)}</b> ${esc(cleanName(n.name))}</a>`;
+    // 현재 경로상에 있으면 자식까지 펼침(최대 세분류 깊이까지)
+    if (isOpen && kids.length && depth < 4) {
+      html += kids.map((k) => render(k, depth + 1)).join('');
+    }
+    return html;
+  };
+  const secs = [...NODES.values()].filter((n) => n.level === 1).sort((a, b) => a.code.localeCompare(b.code));
+  return secs.map((s) => render(s.code, 0)).join('\n');
+}
+
+// 모든 페이지 공통 사이드바(좌: 카테고리 · 우: 광고) HTML
+function sidebarsHtml(opts) {
+  opts = opts || {};
+  const cur = opts.currentCode || '';
+  const active = (p) => (opts.active === p ? ' sn-on' : '');
+  const left = `<aside class="side side-left">
+  <div class="side-box">
+    <div class="side-title">분류 카테고리</div>
+    <nav class="side-nav side-tree">${sideNavHtml(cur)}</nav>
+  </div>
+  <div class="side-box">
+    <div class="side-title">바로가기</div>
+    <nav class="side-nav">
+      <a href="/" class="sn-item${active('home')}">🔎 산업분류코드 검색</a>
+      <a href="/job" class="sn-item${active('job')}">👔 직업분류코드(KSCO)</a>
+    </nav>
+  </div>
+</aside>`;
+  const ad = adSideHtml();
+  const right = ad ? `<aside class="side side-right">
+  <div class="side-box side-ad">
+    <div class="side-title">추천 상품</div>
+    <div class="side-ad-inner">${ad}</div>
+  </div>
+</aside>` : '';
+  return { left, right };
+}
+
+// 사이드바 포함 페이지용 공통 CSS
+const SIDEBAR_CSS = `
+  .layout{display:flex;justify-content:center;align-items:flex-start;gap:18px;max-width:1400px;margin:0 auto}
+  .layout>.wrap{flex:1 1 780px;min-width:0;margin:0}
+  .side{flex:0 0 200px;position:sticky;top:12px}
+  .side-right{flex:0 0 200px}
+  .side-box{background:#fff;border:1px solid #e2e7ef;border-radius:12px;padding:12px 13px;margin-bottom:12px}
+  .side-title{font-size:12px;font-weight:700;color:#8a94a3;margin-bottom:8px}
+  .side-nav{display:flex;flex-direction:column;gap:1px;max-height:64vh;overflow-y:auto}
+  .sn-item{display:block;font-size:12.5px;color:#3d4a5c;text-decoration:none;padding:4px 6px;border-radius:7px;line-height:1.35}
+  .sn-item:hover{background:#f1f5fb;color:#256ef4}
+  .sn-item b{font-family:Consolas,monospace}
+  .sn-cur{background:#eef3fe;color:#1a55c4;font-weight:700}
+  .sn-on{background:#f1f5fb;font-weight:700}
+  .sn-caret{display:inline-block;width:11px;color:#b3bac6;font-size:9px}
+  .sn-d1{padding-left:15px}.sn-d2{padding-left:26px}.sn-d3{padding-left:37px}
+  .side-nav::-webkit-scrollbar{width:5px}
+  .side-nav::-webkit-scrollbar-thumb{background:#dde3ec;border-radius:3px}
+  .side-ad-inner{min-height:240px;display:flex;justify-content:center}
+  .side-ad-disc{font-size:10.5px;color:#b3bac6;margin-top:7px;line-height:1.5}
+  @media(max-width:1180px){.side-right{display:none}}
+  @media(max-width:980px){.side-left{display:none}.layout{display:block}.layout>.wrap{margin:0 auto}}
+`;
 
 // 사업성 검토용 헬퍼 (server.js에서 재사용)
 function to10th(code) {
@@ -317,4 +398,4 @@ function siblings(code) {
 }
 function getNode(code) { return NODES.get(code) || null; }
 
-module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, sideNavHtml, adSlotHtml, adSideHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };
+module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, sideNavHtml, sidebarsHtml, SIDEBAR_CSS, adSlotHtml, adSideHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };

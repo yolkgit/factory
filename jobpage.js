@@ -76,9 +76,51 @@ function sectionsNavHtml() {
   return secs.map((n) => `<a href="/job/${n.code}">${esc(n.code)}. ${esc(n.name)}</a>`).join('\n');
 }
 
-// 광고 슬롯은 codepage와 공유
+// 광고 슬롯·사이드바는 codepage와 공유
 let adSlotHtml = () => '';
+let sidebarsFn = () => ({ left: '', right: '' });
+let sidebarCss = '';
 function setAdSlot(fn) { adSlotHtml = fn; }
+function setSidebars(fn, css) { sidebarsFn = fn; sidebarCss = css || ''; }
+
+// 직업분류 전용 좌측 네비(현재 경로 펼침) — 산업분류 사이드바의 카테고리 부분을 대체
+function jobNavHtml(currentCode) {
+  const openSet = new Set();
+  if (currentCode && NODES.has(currentCode)) {
+    let cur = NODES.get(currentCode);
+    while (cur) { openSet.add(cur.code); cur = cur.parent ? NODES.get(cur.parent) : null; }
+  }
+  const render = (code, depth) => {
+    const n = NODES.get(code);
+    const kids = CHILDREN.get(code) || [];
+    const isOpen = openSet.has(code);
+    const cls = `sn-item${code === currentCode ? ' sn-cur' : ''}${depth > 0 ? ' sn-d' + Math.min(depth, 3) : ''}`;
+    const caret = kids.length ? `<span class="sn-caret">${isOpen ? '▾' : '▸'}</span>` : '<span class="sn-caret"></span>';
+    let html = `<a class="${cls}" href="/job/${code}">${caret}<b>${esc(code)}</b> ${esc(n.name)}</a>`;
+    if (isOpen && kids.length && depth < 4) html += kids.map((k) => render(k, depth + 1)).join('');
+    return html;
+  };
+  return [...NODES.values()].filter((n) => n.level === 1).sort((a, b) => a.code.localeCompare(b.code))
+    .map((s) => render(s.code, 0)).join('\n');
+}
+
+function jobSidebars(currentCode) {
+  const base = sidebarsFn({ active: 'job' });
+  const left = `<aside class="side side-left">
+  <div class="side-box">
+    <div class="side-title">직업 분류</div>
+    <nav class="side-nav side-tree">${jobNavHtml(currentCode)}</nav>
+  </div>
+  <div class="side-box">
+    <div class="side-title">바로가기</div>
+    <nav class="side-nav">
+      <a href="/" class="sn-item">🔎 산업분류코드 검색</a>
+      <a href="/job" class="sn-item sn-on">👔 직업분류코드(KSCO)</a>
+    </nav>
+  </div>
+</aside>`;
+  return { left, right: base.right };
+}
 
 function renderJobPage(code, siteUrl) {
   const node = NODES.get(code);
@@ -139,6 +181,8 @@ function renderJobPage(code, siteUrl) {
     ? `${node.name} 직업분류코드 ${code} | KSCO 8차 한국표준직업분류`
     : `${node.name} (${code}) ${LV_NAME[node.level]} 직업분류코드 | KSCO 8차`;
 
+  const SB = jobSidebars(code);
+
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -182,9 +226,14 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   .ad-label{font-size:11px;color:#b3bac6;margin-bottom:8px;letter-spacing:.3px}
   .ad-disc{font-size:11px;color:#9aa3b0;margin-top:8px}
   footer{margin-top:30px;font-size:11.5px;color:#9aa3b0;text-align:center}
+  .sn-item:hover{color:#16a37b !important}
+  .sn-cur{background:#e7f6f0 !important;color:#0f7a5a !important}
+${sidebarCss}
 </style>
 </head>
 <body>
+<div class="layout">
+${SB.left}
 <div class="wrap">
   <div class="top"><a href="/">← 산업분류코드 조회</a><a href="/job">직업분류코드 목록</a></div>
   <nav class="bc">${breadcrumbHtml}</nav>
@@ -192,6 +241,8 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   ${body}
   ${adSlotHtml()}
   <footer>출처: 통계청 한국표준직업분류(KSCO 8차) · 참고용</footer>
+</div>
+${SB.right}
 </div>
 </body>
 </html>`;
@@ -227,9 +278,13 @@ function renderJobIndex(siteUrl) {
   .kids{margin-top:6px;font-size:13.5px;color:#4a5568}
   .kids a{color:#4a5568;font-weight:400}
   footer{margin-top:26px;font-size:11.5px;color:#9aa3b0;text-align:center}
+  .sn-item:hover{color:#16a37b !important}
+${sidebarCss}
 </style>
 </head>
 <body>
+<div class="layout">
+${jobSidebars('').left}
 <div class="wrap">
   <div class="top">
     <h1>직업분류코드 조회 (KSCO 8차)</h1>
@@ -244,8 +299,10 @@ function renderJobIndex(siteUrl) {
   ${adSlotHtml()}
   <footer>출처: 통계청 한국표준직업분류(KSCO 8차) · 참고용</footer>
 </div>
+${jobSidebars('').right}
+</div>
 </body>
 </html>`;
 }
 
-module.exports = { renderJobPage, renderJobIndex, CODES_ALL, hasCode, sectionsNavHtml, setAdSlot, count: () => NODES.size };
+module.exports = { renderJobPage, renderJobIndex, CODES_ALL, hasCode, sectionsNavHtml, setAdSlot, setSidebars, count: () => NODES.size };
