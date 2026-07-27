@@ -280,6 +280,17 @@
   .frep { font-size: 12.5px; color: #8a94a3; }
   .finfo { font-size: 13px; color: #4a5568; margin-top: 5px; line-height: 1.5; }
   .finfo b { color: #8a94a3; font-weight: 600; font-size: 12px; margin-right: 4px; }
+  .fbadge { font-size: 11px; background: #eef3fe; color: var(--blue-dark); border-radius: 20px; padding: 2px 8px; font-weight: 600; }
+  .fmap { font-size: 11px; color: var(--blue); text-decoration: none; border: 1px solid #d6e0f5; border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
+  .fmap:hover { background: #eef3fe; }
+  .fdetail { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 7px; }
+  .fdetail summary { font-size: 12px; color: var(--blue); cursor: pointer; list-style: none; }
+  .fdetail summary::-webkit-details-marker { display: none; }
+  .fdetail summary::before { content: '▸ '; }
+  .fdetail[open] summary::before { content: '▾ '; }
+  .fdgrid { display: grid; grid-template-columns: 88px 1fr; gap: 3px 10px; margin-top: 7px; font-size: 12.5px; }
+  .fdk { color: #8a94a3; font-weight: 600; }
+  .fdv { color: #3d4a5c; word-break: break-word; }
   .fpager { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0; font-size: 13px; color: #6b7684; }
   .fpage { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 6px 14px; cursor: pointer; color: var(--blue); }
   .fpage:hover { border-color: var(--blue); }
@@ -441,7 +452,22 @@
   <div id="panel-factory" style="display:none;">
     <div class="fmodes">
       <button class="fmode active" id="fmode-code" onclick="setFactoryMode('code')">업종코드로 기업검색</button>
+      <button class="fmode" id="fmode-product" onclick="setFactoryMode('product')">생산품으로 검색</button>
       <button class="fmode" id="fmode-name" onclick="setFactoryMode('name')">회사명으로 검색</button>
+    </div>
+    <div class="fsearch" id="fform-product" style="display:none;">
+      <div class="frow">
+        <input id="p-product" type="text" placeholder="생산품 (예: 아스팔트, 방수시트, 금형)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')productSearch(1)" />
+        <input id="p-sido" type="text" placeholder="시·도 (선택)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')productSearch(1)" />
+        <button onclick="productSearch(1)">생산품 검색</button>
+      </div>
+      <div class="frow">
+        <input id="p-material" type="text" placeholder="원자재 필터 (선택, 예: 밀가루)" autocomplete="off"
+          onkeypress="if(event.key==='Enter')productSearch(1)" />
+      </div>
+      <div class="fnote">전국등록공장현황 기반. <b>생산품·원자재 텍스트</b>로 만드는 곳을 찾습니다. 등록 원문 그대로 검색되므로 표기가 다르면 결과가 달라질 수 있습니다.</div>
     </div>
     <div class="fsearch" id="fform-code">
       <div class="frow">
@@ -1276,10 +1302,37 @@ async function checkFactory() {
 }
 
 function setFactoryMode(mode) {
-  document.getElementById('fmode-code').classList.toggle('active', mode === 'code');
-  document.getElementById('fmode-name').classList.toggle('active', mode === 'name');
-  document.getElementById('fform-code').style.display = mode === 'code' ? '' : 'none';
-  document.getElementById('fform-name').style.display = mode === 'name' ? '' : 'none';
+  for (const m of ['code', 'product', 'name']) {
+    document.getElementById('fmode-' + m).classList.toggle('active', mode === m);
+    document.getElementById('fform-' + m).style.display = mode === m ? '' : 'none';
+  }
+}
+
+// 생산품·원자재로 공장 검색
+async function productSearch(page) {
+  const product = document.getElementById('p-product').value.trim();
+  const sido = document.getElementById('p-sido').value.trim();
+  const material = document.getElementById('p-material').value.trim();
+  const el = document.getElementById('factory-results');
+  if (!product && !material) {
+    el.innerHTML = '<div class="empty">생산품 또는 원자재를 입력하세요.<br/>예: 아스팔트, 방수시트, 금형</div>';
+    document.getElementById('p-product').focus();
+    return;
+  }
+  el.innerHTML = `<div class="loading">‘${esc(product || material)}’ 생산 공장을 찾고 있습니다…</div>`;
+  const qs = new URLSearchParams({ pageNo: String(page), perPage: '20' });
+  if (product) qs.set('product', product);
+  if (material) qs.set('material', material);
+  if (sido) qs.set('sido', sido);
+  try {
+    const r = await fetch('api/company?' + qs);
+    const data = await r.json();
+    if (!data.ok) { el.innerHTML = companyErrorHTML(data); return; }
+    const title = `‘${product || material}’ 생산 공장`;
+    renderFactories(data, { pager: 'productSearch', title, showSido: true, detail: true });
+  } catch (e) {
+    el.innerHTML = `<div class="empty">조회 중 오류가 발생했습니다.<br/>${esc(String(e))}</div>`;
+  }
 }
 
 // 코드 검색 결과 카드의 "이 업종 기업 검색" → 업종코드로 전국 기업 조회
@@ -1407,15 +1460,48 @@ function renderFactories(data, opts) {
         : `<span class="chip">${esc(c)}</span>`;
     }).join('');
     const region = opts.showSido && (f.sido || f.sigungu) ? `${esc(f.sido || '')} ${esc(f.sigungu || '')}`.trim() : '';
+    const fmtDate = (d) => (d && /^\d{4}-?\d{2}-?\d{2}/.test(d) ? d.replace(/^(\d{4})-?(\d{2})-?(\d{2}).*$/, '$1.$2.$3') : (d || ''));
+    const area = (v) => (v || v === 0 ? Number(v).toLocaleString() + '㎡' : '');
+    // 상세: 고용 구성·면적·등록·입지 (값 있는 것만)
+    const empParts = [];
+    if (f.empM || f.empF) empParts.push(`남 ${f.empM || 0} · 여 ${f.empF || 0}`);
+    if (f.empFM || f.empFF) empParts.push(`외국인 ${(f.empFM || 0) + (f.empFF || 0)}`);
+    const detailRows = [];
+    if (f.material) detailRows.push(['원자재', esc(f.material)]);
+    if (f.tel) detailRows.push(['전화', esc(f.tel) + (f.fax ? ` <span style="color:#9aa3b0">/ 팩스 ${esc(f.fax)}</span>` : '')]);
+    if (f.homepage) detailRows.push(['홈페이지', `<a href="${esc(f.homepage.startsWith('http') ? f.homepage : 'http://' + f.homepage)}" target="_blank" rel="noopener nofollow">${esc(f.homepage)}</a>`]);
+    if (empParts.length) detailRows.push(['고용 구성', esc(empParts.join(' / '))]);
+    const areas = [f.landArea ? `용지 ${area(f.landArea)}` : '', f.mfgArea ? `제조시설 ${area(f.mfgArea)}` : '',
+      f.bldArea ? `건축 ${area(f.bldArea)}` : '', f.auxArea ? `부대시설 ${area(f.auxArea)}` : ''].filter(Boolean);
+    if (areas.length) detailRows.push(['면적', esc(areas.join(' · '))]);
+    const setup = [f.fctryGubun, f.seollip, f.ipju && f.ipju !== '해당없음' ? f.ipju : '', f.boyu].filter(Boolean);
+    if (setup.length) detailRows.push(['입지·설립', esc(setup.join(' · '))]);
+    if (f.knowledgeCenter) detailRows.push(['지식산업센터', esc(f.knowledgeCenter)]);
+    if (f.useArea) detailRows.push(['용도지역', esc(f.useArea)]);
+    const regs = [f.registGubun, f.registDe ? `등록 ${fmtDate(f.registDe)}` : '',
+      f.firstRegistDe && f.firstRegistDe !== f.registDe ? `최초등록 ${fmtDate(f.firstRegistDe)}` : ''].filter(Boolean);
+    if (regs.length) detailRows.push(['등록', esc(regs.join(' · '))]);
+    if (f.mgmtOrg) detailRows.push(['관리기관', esc(f.mgmtOrg)]);
+    if (f.corpAdres && f.corpAdres !== f.adres) detailRows.push(['법인주소', esc(f.corpAdres)]);
+
+    const detailHtml = detailRows.length
+      ? `<details class="fdetail"${opts.detail ? ' open' : ''}><summary>상세 정보 ${detailRows.length}항목</summary>
+          <div class="fdgrid">${detailRows.map(([k, v]) => `<div class="fdk">${k}</div><div class="fdv">${v}</div>`).join('')}</div>
+         </details>`
+      : '';
+
     return `<div class="fcard">
       <div class="frow1"><span class="fname">${esc(f.cmpnyNm || '(회사명 미상)')}</span>
         ${f.rprsntvNm ? `<span class="frep">대표 ${esc(f.rprsntvNm)}</span>` : ''}
         ${region ? `<span class="frep">${region}</span>` : ''}
-        ${f.emp ? `<span class="frep">종업원 ${esc(String(f.emp))}명</span>` : ''}</div>
+        ${f.emp ? `<span class="frep">종업원 ${esc(String(f.emp))}명</span>` : ''}
+        ${f.scale ? `<span class="fbadge">${esc(f.scale)}</span>` : ''}</div>
       ${f.indutyNm ? `<div class="finfo"><b>업종</b> ${esc(f.indutyNm)} ${codeChips}</div>` : ''}
       ${f.mainProductCn ? `<div class="finfo"><b>생산품</b> ${esc(f.mainProductCn)}</div>` : ''}
-      ${f.adres ? `<div class="finfo"><b>주소</b> ${esc(f.adres)}</div>` : ''}
+      ${f.adres ? `<div class="finfo"><b>주소</b> ${esc(f.adres)}
+        <a class="fmap" href="https://map.naver.com/v5/search/${encodeURIComponent(f.adres)}" target="_blank" rel="noopener nofollow">지도</a></div>` : ''}
       ${f.irsttNm ? `<div class="finfo"><b>산업단지</b> ${esc(f.irsttNm)}</div>` : ''}
+      ${detailHtml}
     </div>`;
   }).join('');
   if (totalPages > 1) {

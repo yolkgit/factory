@@ -73,8 +73,16 @@ app.get('/api/factory', async (req, res) => {
       indutyCodes: it.indutyCodes || '',
       mainProductCn: it.mainProductCn || '',
       irsttNm: it.irsttNm || '',
-      adres: it.adres || '',
+      adres: it.rnAdres || it.adres || '',
       fctryManageNo: it.fctryManageNo || '',
+      // 상세(공장등록생산정보 API 제공 필드)
+      tel: it.cmpnyTelno || '',
+      fax: it.cmpnyFxnum || '',
+      emp: it.allEmplyCo || '',
+      firstRegistDe: it.frstFctryRegistDe || '',
+      mgmtOrg: it.cvplChrgOrgnztNm || '',
+      homepage: it.hmpadr || '',
+      repIndutyCode: it.rprsntvIndutyCode || '',
     }));
     res.json({
       ok: true,
@@ -93,9 +101,9 @@ app.get('/api/company', async (req, res) => {
   if (!FACTORY_KEY) {
     return res.status(503).json({ ok: false, reason: 'no_key', message: '인증키가 설정되지 않았습니다.' });
   }
-  const { indutyCode = '', cmpnyNm = '', sido = '', pageNo = '1', perPage = '20' } = req.query;
-  if (!indutyCode && !cmpnyNm) {
-    return res.status(400).json({ ok: false, reason: 'no_query', message: '업종코드 또는 회사명을 입력하세요.' });
+  const { indutyCode = '', cmpnyNm = '', sido = '', product = '', material = '', pageNo = '1', perPage = '20' } = req.query;
+  if (!indutyCode && !cmpnyNm && !product && !material) {
+    return res.status(400).json({ ok: false, reason: 'no_query', message: '업종코드·회사명·생산품 중 하나 이상 입력하세요.' });
   }
   const qs = new URLSearchParams({ serviceKey: FACTORY_KEY, page: String(pageNo), perPage: String(perPage) });
   // 이 데이터셋은 10차 산업분류 '대표업종' 코드로 필터. 클라이언트가 11차→10차 변환해 전달.
@@ -103,6 +111,8 @@ app.get('/api/company', async (req, res) => {
   if (indutyCode) qs.append('cond[대표업종::EQ]', indutyCode);
   if (cmpnyNm) qs.append('cond[회사명::LIKE]', cmpnyNm);
   if (sido) qs.append('cond[시도명::LIKE]', sido);
+  if (product) qs.append('cond[생산품::LIKE]', product);
+  if (material) qs.append('cond[원자재::LIKE]', material);
   try {
     const r = await fetch(`${COMPANY_BASE}?${qs}`, { signal: AbortSignal.timeout(20000) });
     const text = await r.text();
@@ -113,6 +123,7 @@ app.get('/api/company', async (req, res) => {
       const reason = /등록되지 않은/.test(data.msg || '') ? 'dataset_not_activated' : 'api_error';
       return res.status(502).json({ ok: false, reason, message: data.msg || '조회 실패' });
     }
+    const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
     const items = (data.data || []).map((r) => ({
       cmpnyNm: r['회사명'] || '',
       rprsntvNm: '',
@@ -122,9 +133,32 @@ app.get('/api/company', async (req, res) => {
       mainProductCn: r['생산품'] || '',
       irsttNm: r['단지명'] || '',
       adres: r['공장주소'] || r['공장주소_지번'] || '',
+      jibunAdres: r['공장주소_지번'] || '',
+      corpAdres: r['법인주소'] || '',
       sido: r['시도명'] || '',
       sigungu: r['시군구명'] || '',
       emp: r['종업원합계'] || '',
+      // 상세 정보
+      material: r['원자재'] || '',
+      tel: r['전화번호'] || '',
+      scale: r['공장규모'] || '',
+      fctryGubun: r['공장구분'] || '',
+      seollip: r['설립구분'] || '',
+      ipju: r['입주형태'] || '',
+      boyu: r['보유구분'] || '',
+      registGubun: r['등록구분'] || '',
+      registDe: r['등록일'] || '',
+      firstRegistDe: r['최초등록일'] || '',
+      firstApprDe: r['최초승인일'] || '',
+      mgmtOrg: r['관리기관'] || '',
+      knowledgeCenter: r['지식산업센터명'] || '',
+      useArea: r['용도지역'] || '',
+      jimok: r['지목'] || '',
+      empM: num(r['남자종업원']), empF: num(r['여자종업원']),
+      empFM: num(r['외국인남자종업원']), empFF: num(r['외국인여자종업원']),
+      landArea: num(r['용지면적']), mfgArea: num(r['제조시설면적']),
+      auxArea: num(r['부대시설면적']), bldArea: num(r['건축면적']),
+      pilji: num(r['필지수']),
     }));
     res.json({
       ok: true,
