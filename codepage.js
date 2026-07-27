@@ -137,6 +137,30 @@ function renderCodePage(code, siteUrl) {
 
   let body = '';
   if (desc5 && desc5.e) body += `<p class="eng">${esc(desc5.e)}</p>`;
+
+  // 검색 의도에 답하는 요약 문장(리드) — 크롤러·AI가 인용하기 좋은 형태
+  if (isLeaf) {
+    const oldsL = NEW2OLD.get(code) || [];
+    const oldTxt = oldsL.length && oldsL[0].old !== code
+      ? ` 구 분류(10차) 기준 코드는 ${oldsL.map((o) => o.old).join(', ')}입니다.`
+      : (oldsL.length ? ' 10차(구 분류)에서도 같은 코드를 사용합니다.' : '');
+    const upsL = UPJONG_BY_K.get(code) || [];
+    const upTxt = upsL.length ? ` 국세청 업종코드는 ${upsL.slice(0, 3).map((o) => o.u).join(', ')}${upsL.length > 3 ? ' 등' : ''}에 연계됩니다.` : '';
+    // 상위 경로명에서 괄호 범위표기 제거 + 통계청 원문의 자간 공백 정리 (예: "제 조 업(10~34)" → "제조업")
+    const clean = (s) => {
+      let t = s.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+      // "제 조 업"처럼 한 글자씩 띄운 표기를 붙임 (2글자 이상 단어는 보존)
+      if (/^(?:\S ){1,}\S$/.test(t) && t.split(' ').every((w) => w.length === 1)) t = t.replace(/ /g, '');
+      return t;
+    };
+    const trail = p.map((n) => clean(n.name)).slice(0, -1).join(' › ');
+    body += `<p class="lead"><b>${esc(node.name)}</b>의 한국표준산업분류(KSIC) 11차 <b>산업분류코드는 ${esc(code)}</b>입니다.
+      ${esc(trail)} 아래 ${LV_NAME[node.level]}로 분류됩니다.${oldTxt}${upTxt}</p>`;
+  } else {
+    body += `<p class="lead"><b>${esc(node.name)}</b>(코드 <b>${esc(code)}</b>)은 한국표준산업분류(KSIC) 11차의 ${LV_NAME[node.level]}입니다.
+      아래에서 하위 ${(CHILDREN.get(code) || []).length}개 분류와 각 업종코드를 확인할 수 있습니다.</p>`;
+  }
+
   body += descBlock(code);
 
   // 하위 분류
@@ -223,6 +247,7 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   .lv{display:inline-block;font-size:12px;background:#eef3fe;color:#1a55c4;border-radius:20px;padding:2px 9px;margin-left:6px;vertical-align:middle}
   h2{font-size:16px;margin:24px 0 8px;border-top:1px solid #e2e7ef;padding-top:16px}
   .eng{color:#8a94a3;font-style:italic;margin:2px 0 0}
+  .lead{font-size:14.5px;line-height:1.75;color:#2b3648;background:#f5f9ff;border:1px solid #dde8fb;border-radius:10px;padding:12px 14px;margin:12px 0 4px}
   .descbox{background:#fff;border:1px solid #eef1f6;border-radius:10px;padding:12px 14px;font-size:14px}
   .descbox .sec{font-weight:700;font-size:12px;margin:8px 0 2px}
   .descbox .sec.inc{color:#2b7a3d}.descbox .sec.exc{color:#c05621}
