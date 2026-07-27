@@ -49,10 +49,21 @@ async function main() {
 
   for (let i = 0; i < urls.length; i += BATCH) {
     const chunk = urls.slice(i, i + BATCH);
-    const res = await submit(key, chunk);
-    // 200/202 = 접수됨, 400=형식오류, 403=키불일치, 422=URL/호스트 불일치, 429=과다요청
+    let res = await submit(key, chunk);
+    // 200/202 = 접수됨, 400=형식오류, 403=키검증 실패/진행중, 422=URL·호스트 불일치, 429=과다요청
+    // 신규 사이트는 키 검증에 시간이 걸려 403(SiteVerificationNotCompleted)이 날 수 있어 재시도한다.
+    for (let t = 1; t <= 5 && res.status === 403 && /VerificationNotCompleted/i.test(res.text); t++) {
+      const wait = 30 * t;
+      console.log(`  키 검증 진행 중 — ${wait}초 후 재시도 (${t}/5)`);
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      res = await submit(key, chunk);
+    }
     console.log(`  ${i + 1}~${i + chunk.length}: HTTP ${res.status} ${res.text}`);
-    if (res.status === 403) throw new Error('키 검증 실패 — 키 파일이 사이트 루트에 배포됐는지 확인하세요.');
+    if (res.status === 403) {
+      console.error('키 검증이 아직 완료되지 않았습니다. 키 파일은 배포돼 있으니 잠시 후 다시 실행하세요:');
+      console.error(`  ${SITE}/${key}.txt`);
+      process.exit(1);
+    }
   }
   console.log('완료. 네이버·빙 등 IndexNow 지원 엔진에 통보되었습니다(구글은 미지원).');
 }
