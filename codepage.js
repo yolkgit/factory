@@ -145,6 +145,73 @@ function renderCodePage(code, siteUrl) {
       ...p.map((n, i) => ({ '@type': 'ListItem', position: i + 2, name: `${n.code} ${n.name}`, item: `${siteUrl}/code/${n.code}` }))],
   };
 
+  // ---- AI 인용·연관검색어 대응: 실제 검색되는 질문 패턴을 데이터로 답변 생성 ----
+  const qa = [];
+  if (isLeaf) {
+    const nm = node.name;
+    qa.push({
+      q: `${nm}의 산업분류코드는?`,
+      a: `${nm}의 한국표준산업분류(KSIC) 11차 산업분류코드는 ${code}입니다. ${p.map((n) => cleanName(n.name)).slice(0, -1).join(' › ')} 아래 ${LV_NAME[node.level]}에 속합니다.`,
+    });
+    qa.push({
+      q: `산업분류코드 ${code}은 어떤 업종인가요?`,
+      a: `산업분류코드 ${code}은 ${nm}입니다.${desc5 && desc5.d ? ' ' + desc5.d.split('\n')[0] : ''}`,
+    });
+    const olds = NEW2OLD.get(code) || [];
+    if (olds.length && olds[0].old !== code) {
+      qa.push({
+        q: `${nm}의 10차 산업분류코드는?`,
+        a: `${nm}은 구 분류(10차) 기준 ${olds.map((o) => o.old).join(', ')}이며, 11차 개정으로 ${code}으로 변경되었습니다.`,
+      });
+    } else if (olds.length) {
+      qa.push({ q: `${nm}은 10차와 11차 코드가 같나요?`, a: `네. ${nm}은 10차와 11차 모두 ${code}으로 동일합니다.` });
+    }
+    // 해설 기반 포함/제외 (AI가 가장 인용하기 좋은 정보)
+    if (desc5 && desc5.d) {
+      const lines = desc5.d.split('\n');
+      const exIdx = lines.indexOf('[예시]');
+      const exclIdx = lines.indexOf('[제외]');
+      if (exIdx > -1) {
+        const items = lines.slice(exIdx + 1, exclIdx > -1 ? exclIdx : undefined).filter((l) => l.startsWith('·')).map((l) => l.replace(/^·/, '').trim());
+        if (items.length) qa.push({ q: `${nm}(${code})에 포함되는 활동은?`, a: `${nm}에는 ${items.slice(0, 6).join(', ')} 등이 포함됩니다.` });
+      }
+      if (exclIdx > -1) {
+        const items = lines.slice(exclIdx + 1).filter((l) => l.startsWith('·')).map((l) => l.replace(/^·/, '').trim());
+        if (items.length) qa.push({ q: `${nm}(${code})에서 제외되는 것은?`, a: `${items.slice(0, 5).join(' / ')}은(는) ${nm}에서 제외되며 별도 코드로 분류됩니다.` });
+      }
+    }
+    // 국세청 업종코드·경비율 (종합소득세 시즌 검색량 큼)
+    const ups = UPJONG_BY_K.get(code) || [];
+    if (ups.length) {
+      qa.push({ q: `${nm}의 국세청 업종코드는?`, a: `${nm}(산업분류코드 ${code})에 연계되는 국세청 업종코드는 ${ups.slice(0, 5).map((o) => `${o.u}(${o.un})`).join(', ')}입니다.` });
+      const withRate = ups.filter((o) => GYEONGBI[o.u]);
+      if (withRate.length) {
+        const g = GYEONGBI[withRate[0].u];
+        qa.push({
+          q: `${nm}의 단순경비율·기준경비율은?`,
+          a: `국세청 업종코드 ${withRate[0].u}(${withRate[0].un}) 기준 2025년 귀속 단순경비율은 ${g[0]}%${g[1] ? `(초과율 ${g[1]}%)` : ''}, 기준경비율은 ${g[2]}%입니다. 경비율은 종합소득세 추계신고에 쓰는 세무상 비율이며 실제 마진율이 아닙니다.`,
+        });
+      }
+    }
+    const sj = sanjaeRate(code);
+    if (sj) qa.push({ q: `${nm}의 산재보험료율은?`, a: `${nm}은 ${sj.label ? sj.label + ' 기준 ' : ''}2026년도 산재보험료율 약 ${sj.rate}‰(1,000분의 ${sj.rate})가 적용됩니다. 근로복지공단 사업종류 기준 근사값이며 정확한 요율은 사업종류 예시표에서 확인하세요.` });
+    const sme = smeInfo(code);
+    if (sme) {
+      const parts = [];
+      if (sme.sme !== undefined) parts.push(`중소기업은 평균매출액 ${sme.sme.toLocaleString()}억원 이하`);
+      if (sme.small !== undefined) parts.push(`소기업은 ${sme.small.toLocaleString()}억원 이하`);
+      qa.push({ q: `${nm}의 중소기업 기준 매출은?`, a: `중소기업기본법 시행령상 ${nm}은 ${parts.join(', ')}입니다. 지원사업·규제 판정에 쓰이는 기준으로 업종 평균매출이 아닙니다.` });
+    }
+    qa.push({
+      q: `${nm} 공장·업체는 어디서 찾나요?`,
+      a: `산업분류코드 ${code}으로 전국 등록공장을 조회할 수 있습니다. 회사명·생산품·지역별 검색과 경쟁 밀도·규모 분포 확인이 가능합니다.`,
+    });
+  } else {
+    qa.push({ q: `${node.name}(${code})은 무엇인가요?`, a: `${node.name}(코드 ${code})은 한국표준산업분류(KSIC) 11차의 ${LV_NAME[node.level]}이며, 하위에 ${(CHILDREN.get(code) || []).length}개 분류가 있습니다.` });
+    const kidsList = (CHILDREN.get(code) || []).slice(0, 8).map((k) => `${k} ${NODES.get(k).name}`);
+    if (kidsList.length) qa.push({ q: `${node.name}에는 어떤 업종이 있나요?`, a: `${kidsList.join(', ')} 등이 있습니다.` });
+  }
+
   let body = '';
   if (desc5 && desc5.e) body += `<p class="eng">${esc(desc5.e)}</p>`;
 
@@ -169,6 +236,27 @@ function renderCodePage(code, siteUrl) {
   } else {
     body += `<p class="lead"><b>${esc(node.name)}</b>(코드 <b>${esc(code)}</b>)은 한국표준산업분류(KSIC) 11차의 ${LV_NAME[node.level]}입니다.
       아래에서 하위 ${(CHILDREN.get(code) || []).length}개 분류와 각 업종코드를 확인할 수 있습니다.</p>`;
+  }
+
+  // 핵심 요약표 — AI가 사실을 그대로 추출하기 좋은 key-value 형태
+  if (isLeaf) {
+    const rows = [];
+    rows.push(['산업분류코드(11차)', esc(code)]);
+    rows.push(['분류명', esc(node.name)]);
+    if (desc5 && desc5.e) rows.push(['영문명', esc(desc5.e)]);
+    rows.push(['분류 수준', LV_NAME[node.level]]);
+    const oldsS = NEW2OLD.get(code) || [];
+    if (oldsS.length) rows.push(['10차 코드', oldsS[0].old === code ? `${esc(code)} (동일)` : esc(oldsS.map((o) => o.old).join(', '))]);
+    const upsS = UPJONG_BY_K.get(code) || [];
+    if (upsS.length) rows.push(['국세청 업종코드', esc(upsS.slice(0, 3).map((o) => o.u).join(', ')) + (upsS.length > 3 ? ' 외' : '')]);
+    const gS = upsS.map((o) => GYEONGBI[o.u]).find(Boolean);
+    if (gS) rows.push(['경비율(2025 귀속)', `단순 ${gS[0]}% · 기준 ${gS[2]}%`]);
+    const sjS = sanjaeRate(code);
+    if (sjS) rows.push(['산재보험료율(2026)', `${sjS.rate}‰`]);
+    const smeS = smeInfo(code);
+    if (smeS && smeS.sme !== undefined) rows.push(['중소기업 기준', `평균매출액 ${smeS.sme.toLocaleString()}억원 이하`]);
+    body += `<table class="factbox"><caption>${esc(node.name)} 핵심 정보 요약</caption><tbody>` +
+      rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('') + `</tbody></table>`;
   }
 
   body += descBlock(code);
@@ -215,13 +303,56 @@ function renderCodePage(code, siteUrl) {
     body += `<p class="cta"><a href="/?q=${code}">🔎 대화형 도구에서 ‘${esc(node.name)}’ 열기</a> · <a href="/?q=${code}">🏭 이 업종 전국 기업(공장) 검색</a></p>`;
   }
 
-  const faqLd = isLeaf ? {
+  // 자주 묻는 질문 — 화면에도 노출해야 AI·검색엔진이 실제 문장을 인용한다
+  if (qa.length) {
+    body += `<h2>자주 묻는 질문</h2><div class="qa">` +
+      qa.map((x) => `<div class="qa-item"><h3 class="qa-q">${esc(x.q)}</h3><p class="qa-a">${esc(x.a)}</p></div>`).join('') +
+      `</div>`;
+  }
+
+  // 연관 검색·바로가기 — 사용자가 이어서 찾는 것들을 내부링크로 연결
+  const relatedLinks = [];
+  if (isLeaf) {
+    const olds2 = NEW2OLD.get(code) || [];
+    relatedLinks.push([`${node.name} 공장·업체 찾기`, `/?q=${code}`]);
+    relatedLinks.push([`${node.name} 사업성 검토(경쟁 밀도)`, `/?q=${code}`]);
+    if (olds2.length && olds2[0].old !== code) relatedLinks.push([`10차 ${olds2[0].old} → 11차 ${code} 변환`, `/?q=${olds2[0].old}`]);
+    const par = NODES.get(node.parent);
+    if (par) relatedLinks.push([`${par.name} 전체 코드 보기`, `/code/${par.code}`]);
+    relatedLinks.push(['산업분류코드 전체 검색', '/']);
+    relatedLinks.push(['직업분류코드(KSCO) 조회', '/job']);
+  } else {
+    relatedLinks.push(['산업분류코드 검색', '/']);
+    if (node.parent) relatedLinks.push([`상위 분류 ${NODES.get(node.parent).name}`, `/code/${node.parent}`]);
+    relatedLinks.push(['직업분류코드(KSCO)', '/job']);
+    relatedLinks.push(['고용직업분류(KECO)', '/keco']);
+  }
+  body += `<h2>이런 것도 함께 찾아보세요</h2><div class="rellinks">` +
+    relatedLinks.map(([t, u]) => `<a href="${u}">${esc(t)}</a>`).join('') + `</div>`;
+
+
+  const faqLd = qa.length ? {
     '@context': 'https://schema.org', '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: `${node.name}의 산업분류코드는?`, acceptedAnswer: { '@type': 'Answer', text: `${node.name}의 한국표준산업분류(KSIC 11차) 코드는 ${code}입니다.` } },
-      ...(NEW2OLD.get(code) && NEW2OLD.get(code)[0].old !== code ? [{ '@type': 'Question', name: `${node.name}의 10차 코드는?`, acceptedAnswer: { '@type': 'Answer', text: `10차(구 분류) 기준 코드는 ${NEW2OLD.get(code).map((o) => o.old).join(', ')}입니다.` } }] : []),
-    ],
+    mainEntity: qa.map((x) => ({ '@type': 'Question', name: x.q, acceptedAnswer: { '@type': 'Answer', text: x.a } })),
   } : null;
+
+  // 분류 자체를 '정의된 용어'로 선언 → AI가 코드-명칭-정의를 엔티티로 인식
+  const termLd = {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTerm',
+    '@id': `${url}#term`,
+    name: node.name,
+    termCode: code,
+    description: (desc5 && desc5.d ? desc5.d.split('\n')[0] : metaDesc).slice(0, 300),
+    inDefinedTermSet: {
+      '@type': 'DefinedTermSet',
+      name: '한국표준산업분류(KSIC) 11차',
+      alternateName: 'Korean Standard Industrial Classification',
+      url: `${siteUrl}/`,
+      publisher: { '@type': 'GovernmentOrganization', name: '통계청' },
+    },
+    ...(desc5 && desc5.e ? { alternateName: desc5.e } : {}),
+  };
 
   const title = isLeaf
     ? `${node.name} 산업분류코드 ${code} | KSIC 11차 업종코드·경비율`
@@ -247,6 +378,7 @@ function renderCodePage(code, siteUrl) {
 <meta property="og:locale" content="ko_KR" />
 <script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
 ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>` : ''}
+<script type="application/ld+json">${JSON.stringify(termLd)}</script>
 <style>
   body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#1c2430;background:#f4f6fa;margin:0;line-height:1.6}
   .wrap{max-width:780px;margin:0 auto;padding:16px 16px 60px}
@@ -272,6 +404,20 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   table.kv th{text-align:left;background:#f8fafc;color:#4a5568;padding:9px 12px;width:34%;vertical-align:top;font-weight:600}
   table.kv td{padding:9px 12px;border-top:1px solid #eef1f6}
   .cta{margin-top:22px;background:#f5f9ff;border:1px solid #d6e0f5;border-radius:10px;padding:12px 14px;font-size:14px}
+  .factbox{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid #e2e7ef;border-radius:10px;overflow:hidden;margin:12px 0 4px}
+  .factbox caption{text-align:left;font-size:12px;color:#8a94a3;padding:8px 12px 4px;font-weight:600}
+  .factbox th{text-align:left;background:#f8fafc;color:#4a5568;padding:7px 12px;width:38%;font-weight:600;border-top:1px solid #eef1f6}
+  .factbox td{padding:7px 12px;border-top:1px solid #eef1f6;color:#1c2430}
+  .qa{margin-top:4px}
+  .qa-item{border-bottom:1px solid #eef1f6;padding:10px 0}
+  .qa-item:last-child{border-bottom:0}
+  .qa-q{font-size:14px;margin:0 0 4px;color:#1c2430}
+  .qa-q::before{content:'Q. ';color:#256ef4;font-weight:700}
+  .qa-a{font-size:13.5px;margin:0;color:#4a5568;line-height:1.7}
+  .qa-a::before{content:'A. ';color:#8a94a3;font-weight:700}
+  .rellinks{display:flex;flex-wrap:wrap;gap:7px}
+  .rellinks a{font-size:13px;color:#3d4a5c;text-decoration:none;background:#f1f5fb;border:1px solid #e2e9f5;border-radius:8px;padding:5px 11px}
+  .rellinks a:hover{border-color:#256ef4;color:#256ef4}
   footer{margin-top:30px;font-size:11.5px;color:#9aa3b0;text-align:center}
 ${SIDEBAR_CSS}
   .ad-slot{margin-top:26px;padding:12px;border:1px solid #eef1f6;border-radius:12px;background:#fbfcfe;text-align:center}
