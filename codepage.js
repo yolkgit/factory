@@ -347,7 +347,8 @@ function sidebarsHtml(opts) {
     <div class="side-title">바로가기</div>
     <nav class="side-nav">
       <a href="/" class="sn-item${active('home')}">🔎 산업분류코드 검색</a>
-      <a href="/job" class="sn-item${active('job')}">👔 직업분류코드(KSCO)</a>
+      <a href="/job" class="sn-item${active('job')}">👔 표준직업분류(KSCO)</a>
+      <a href="/keco" class="sn-item${active('keco')}">🧭 고용직업분류(KECO)</a>
     </nav>
   </div>
 </aside>`;

@@ -17,9 +17,11 @@ function loadKey() {
 function allUrls() {
   const codepage = require('../codepage');
   const jobpage = require('../jobpage');
-  const urls = [`${SITE}/`, `${SITE}/job`];
+  const kecopage = require('../kecopage');
+  const urls = [`${SITE}/`, `${SITE}/job`, `${SITE}/keco`];
   for (const c of codepage.CODES_ALL()) urls.push(`${SITE}/code/${c}`);
   for (const c of jobpage.CODES_ALL()) urls.push(`${SITE}/job/${c}`);
+  for (const c of kecopage.CODES_ALL()) urls.push(`${SITE}/keco/${c}`);
   return urls;
 }
 
