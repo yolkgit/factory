@@ -275,6 +275,8 @@ app.get('/robots.txt', (req, res) => {
     [
       'User-agent: *',
       'Allow: /',
+      // API 엔드포인트는 크롤 대상이 아님(수집 실패로 잡히는 것 방지, 크롤 예산 절약)
+      'Disallow: /api/',
       '',
       '# AI 답변 엔진 크롤러 명시적 허용',
       'User-agent: GPTBot',
