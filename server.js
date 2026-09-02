@@ -308,6 +308,11 @@ app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
   xml += `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n`;
+  // 국세청 업종코드
+  xml += `  <url><loc>${base}/upjong</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>\n`;
+  for (const code of upjongpage.CODES_ALL()) {
+    xml += `  <url><loc>${base}/upjong/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+  }
   for (const p of ['about', 'privacy', 'terms']) {
     xml += `  <url><loc>${base}/${p}</loc><lastmod>${today}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>\n`;
   }
@@ -326,6 +331,16 @@ app.get('/sitemap.xml', (req, res) => {
   }
   xml += `</urlset>\n`;
   res.type('application/xml').send(xml);
+});
+
+// 국세청 업종코드(6자리) 전용 페이지 — "업종코드" 검색 의도(세금·경비율)에 직접 대응
+const upjongpage = require('./upjongpage');
+upjongpage.setDeps(codepage.getNode, codepage.adSlotHtml, codepage.SIDEBAR_CSS);
+app.get('/upjong', (req, res) => res.type('html').send(upjongpage.renderUpjongIndex(siteUrl(req))));
+app.get('/upjong/:code', (req, res) => {
+  const html = upjongpage.renderUpjongPage(String(req.params.code || '').trim(), siteUrl(req));
+  if (!html) return res.status(404).type('html').send('<meta charset="utf-8"><p>존재하지 않는 업종코드입니다. <a href="/upjong">업종코드 목록</a></p>');
+  res.type('html').send(html);
 });
 
 // 사이트 소개·개인정보처리방침·이용약관 (광고 심사 필수 페이지)

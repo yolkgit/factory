@@ -18,10 +18,12 @@ function allUrls() {
   const codepage = require('../codepage');
   const jobpage = require('../jobpage');
   const kecopage = require('../kecopage');
-  const urls = [`${SITE}/`, `${SITE}/job`, `${SITE}/keco`];
+  const upjongpage = require('../upjongpage');
+  const urls = [`${SITE}/`, `${SITE}/job`, `${SITE}/keco`, `${SITE}/upjong`, `${SITE}/about`, `${SITE}/privacy`, `${SITE}/terms`];
   for (const c of codepage.CODES_ALL()) urls.push(`${SITE}/code/${c}`);
   for (const c of jobpage.CODES_ALL()) urls.push(`${SITE}/job/${c}`);
   for (const c of kecopage.CODES_ALL()) urls.push(`${SITE}/keco/${c}`);
+  for (const c of upjongpage.CODES_ALL()) urls.push(`${SITE}/upjong/${c}`);
   return urls;
 }
 
