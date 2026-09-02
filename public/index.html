@@ -117,7 +117,7 @@
   /* 3단 레이아웃: 좌 카테고리 · 중앙 콘텐츠 · 우 광고 */
   .layout { display: flex; justify-content: center; align-items: flex-start; gap: 18px; max-width: 1400px; margin: 0 auto; }
   .layout > .wrap { flex: 1 1 780px; min-width: 0; margin: 0; }
-  .side { flex: 0 0 200px; position: sticky; top: 60px; margin-top: -34px; }
+  .side { flex: 0 0 200px; position: sticky; top: 64px; margin-top: -34px; }
   .side-right { flex: 0 0 190px; }
   .side-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; margin-bottom: 12px; }
   .side-title { font-size: 12px; font-weight: 700; color: #8a94a3; margin-bottom: 8px; letter-spacing: .2px; }
@@ -139,7 +139,7 @@
   @media (max-width: 1180px) { .side-right { display: none; } }
   @media (max-width: 980px) { .side-left { display: none; } .layout { display: block; } .layout > .wrap { margin: 0 auto; } }
   .searchbox {
-    position: sticky; top: 58px; z-index: 5;
+    position: sticky; top: 62px; z-index: 5;
     margin-top: -46px;
     display: flex; gap: 8px;
     background: var(--card);
@@ -746,12 +746,25 @@ async function loadData() {
   document.getElementById('hint').textContent =
     `세세분류 ${[...NODES.values()].filter(n=>n.level===5).length.toLocaleString()}개 · 색인어 ${TERMS.length.toLocaleString()}개 · 해설 ${descCnt.toLocaleString()}개 · 국세청 업종코드 ${UPJONG_BY_U.size.toLocaleString()}개`;
   renderTree();
-  const urlQ = new URLSearchParams(location.search).get('q');
+  const params = new URLSearchParams(location.search);
+  const urlQ = params.get('q');
   if (urlQ) {
     document.getElementById('q').value = urlQ;
     runSearch();
   } else {
     renderHome();
+  }
+  // 헤더 링크에서 ?tab=factory / ?tab=feasibility 로 들어오면 해당 탭을 바로 연다
+  const urlTab = params.get('tab');
+  if (urlTab && ['search', 'browse', 'factory', 'feasibility'].includes(urlTab)) switchTab(urlTab);
+  // 이미 홈에 있으면 헤더의 탭 링크는 리로드 없이 전환한다
+  for (const a of document.querySelectorAll('.gnb-link[data-nav="factory"], .gnb-link[data-nav="feasibility"]')) {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab(a.dataset.nav);
+      history.replaceState(null, '', '/?tab=' + a.dataset.nav);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }
 }
 
@@ -1138,6 +1151,11 @@ function switchTab(tab) {
   for (const t of ['search', 'browse', 'factory', 'feasibility']) {
     document.getElementById('tab-' + t).classList.toggle('active', tab === t);
     document.getElementById('panel-' + t).style.display = tab === t ? '' : 'none';
+  }
+  // 헤더의 기업·공장 조회 / 사업성 검토는 홈의 탭이므로, 현재 탭에 맞춰 헤더 활성 표시를 옮긴다
+  const navKey = tab === 'factory' || tab === 'feasibility' ? tab : 'home';
+  for (const a of document.querySelectorAll('.gnb-link[data-nav]')) {
+    a.classList.toggle('on', a.dataset.nav === navKey);
   }
 }
 

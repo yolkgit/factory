@@ -489,31 +489,54 @@ const NAV_ITEMS = [
   { key: 'upjong', href: '/upjong', label: '업종코드·경비율', icon: '💰' },
   { key: 'job', href: '/job', label: '표준직업분류', icon: '👔' },
   { key: 'keco', href: '/keco', label: '고용직업분류', icon: '🧭' },
+  { key: 'factory', href: '/?tab=factory', label: '기업·공장 조회', icon: '🏭' },
+  { key: 'feasibility', href: '/?tab=feasibility', label: '사업성 검토', icon: '📊' },
 ];
 function headerNavHtml(active) {
   return `<nav class="gnb"><div class="gnb-in">
   <a class="gnb-brand" href="/">산업분류코드 조회</a>
   <div class="gnb-links">
-    ${NAV_ITEMS.map((n) => `<a href="${n.href}" class="gnb-link${active === n.key ? ' on' : ''}"><i>${n.icon}</i>${n.label}</a>`).join('')}
+    ${NAV_ITEMS.map((n) => `<a href="${n.href}" data-nav="${n.key}" class="gnb-link${active === n.key ? ' on' : ''}"><i>${n.icon}</i>${n.label}</a>`).join('')}
   </div>
-</div></nav>`;
+</div></nav>
+<script>(function(){
+  var box=document.querySelector('.gnb-links'); if(!box) return;
+  // 좁은 화면에서는 6개가 다 안 들어가므로, 현재 위치(활성 항목)를 먼저 보이게 스크롤한다
+  var on=box.querySelector('.gnb-link.on');
+  if(on&&on.getBoundingClientRect().right>box.getBoundingClientRect().right)
+    box.scrollLeft=on.offsetLeft-16;
+  // 오른쪽에 더 있다는 표시(페이드) — 끝까지 스크롤하면 감춘다
+  function fade(){
+    var more=box.scrollLeft+box.clientWidth < box.scrollWidth-2;
+    box.parentNode.classList.toggle('has-more',more);
+  }
+  fade(); box.addEventListener('scroll',fade,{passive:true}); addEventListener('resize',fade);
+})();</script>`;
 }
 const HEADER_CSS = `
-  .gnb{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e2e7ef;box-shadow:0 1px 3px rgba(20,40,90,.04)}
-  .gnb-in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:0 14px;height:48px}
-  .gnb-brand{font-size:14px;font-weight:800;color:#1a55c4;text-decoration:none;white-space:nowrap}
-  .gnb-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+  .gnb{position:sticky;top:0;z-index:50;background:linear-gradient(135deg,#1a55c4,#2f7ae5);box-shadow:0 2px 10px rgba(20,40,90,.18)}
+  .gnb-in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:0 14px;height:52px;position:relative}
+  .gnb-in::after{content:'';position:absolute;right:0;top:0;bottom:0;width:34px;pointer-events:none;
+    background:linear-gradient(90deg,rgba(47,122,229,0),#2f7ae5);opacity:0;transition:opacity .2s}
+  .gnb-in.has-more::after{opacity:1}
+  .gnb-brand{font-size:14.5px;font-weight:800;color:#fff;text-decoration:none;white-space:nowrap;letter-spacing:-.2px}
+  .gnb-links{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;flex:1}
   .gnb-links::-webkit-scrollbar{display:none}
-  .gnb-link{display:flex;align-items:center;gap:5px;font-size:13px;color:#4a5568;text-decoration:none;padding:7px 11px;border-radius:8px;white-space:nowrap}
-  .gnb-link i{font-style:normal;font-size:13px}
-  .gnb-link:hover{background:#f1f5fb;color:#256ef4}
-  .gnb-link.on{background:#eef3fe;color:#1a55c4;font-weight:700}
-  @media(max-width:640px){
-    .gnb-in{gap:8px;padding:0 10px;height:46px}
-    .gnb-brand{font-size:12.5px}
-    .gnb-link{font-size:12.5px;padding:6px 9px}
+  .gnb-link{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.88);
+    text-decoration:none;padding:8px 12px;border-radius:8px;white-space:nowrap;transition:background .15s}
+  .gnb-link i{font-style:normal;font-size:14px}
+  .gnb-link:hover{background:rgba(255,255,255,.16);color:#fff}
+  .gnb-link.on{background:#fff;color:#1a55c4;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  @media(max-width:900px){
+    .gnb-in{gap:10px;padding:0 10px;height:50px}
+    .gnb-brand{font-size:13px}
+    .gnb-link{font-size:13px;padding:7px 10px}
   }
-  @media(max-width:420px){ .gnb-brand{display:none} }
+  @media(max-width:560px){
+    .gnb-brand{display:none}
+    .gnb-in{padding:0 8px;height:48px}
+    .gnb-link{font-size:12.5px;padding:7px 9px;gap:4px}
+  }
 `;
 
 // 모든 페이지 공통 사이드바(좌: 카테고리 · 우: 광고) HTML
@@ -550,7 +573,7 @@ function sidebarsHtml(opts) {
 const SIDEBAR_CSS = `
   .layout{display:flex;justify-content:center;align-items:flex-start;gap:18px;max-width:1400px;margin:0 auto}
   .layout>.wrap{flex:1 1 780px;min-width:0;margin:0}
-  .side{flex:0 0 200px;position:sticky;top:60px}
+  .side{flex:0 0 200px;position:sticky;top:64px}
   .side-right{flex:0 0 200px}
   .side-box{background:#fff;border:1px solid #e2e7ef;border-radius:12px;padding:12px 13px;margin-bottom:12px}
   .side-title{font-size:12px;font-weight:700;color:#8a94a3;margin-bottom:8px}
