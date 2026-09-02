@@ -419,6 +419,7 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   .rellinks a{font-size:13px;color:#3d4a5c;text-decoration:none;background:#f1f5fb;border:1px solid #e2e9f5;border-radius:8px;padding:5px 11px}
   .rellinks a:hover{border-color:#256ef4;color:#256ef4}
   footer{margin-top:30px;font-size:11.5px;color:#9aa3b0;text-align:center}
+${HEADER_CSS}
 ${SIDEBAR_CSS}
   .ad-slot{margin-top:26px;padding:12px;border:1px solid #eef1f6;border-radius:12px;background:#fbfcfe;text-align:center}
   .ad-label{font-size:11px;color:#b3bac6;margin-bottom:8px;letter-spacing:.3px}
@@ -426,6 +427,7 @@ ${SIDEBAR_CSS}
 </style>
 </head>
 <body>
+${headerNavHtml('home')}
 <div class="layout">
 ${SIDEBARS.left}
 <div class="wrap">
@@ -480,6 +482,40 @@ function sideNavHtml(currentCode) {
   return secs.map((s) => render(s.code, 0)).join('\n');
 }
 
+// 모든 페이지 공통 상단 고정 네비게이션.
+// 사이드바는 980px 이하에서 숨겨지므로 모바일에서는 이 헤더가 유일한 섹션 이동 수단이다.
+const NAV_ITEMS = [
+  { key: 'home', href: '/', label: '산업분류코드', icon: '🔎' },
+  { key: 'upjong', href: '/upjong', label: '업종코드·경비율', icon: '💰' },
+  { key: 'job', href: '/job', label: '표준직업분류', icon: '👔' },
+  { key: 'keco', href: '/keco', label: '고용직업분류', icon: '🧭' },
+];
+function headerNavHtml(active) {
+  return `<nav class="gnb"><div class="gnb-in">
+  <a class="gnb-brand" href="/">산업분류코드 조회</a>
+  <div class="gnb-links">
+    ${NAV_ITEMS.map((n) => `<a href="${n.href}" class="gnb-link${active === n.key ? ' on' : ''}"><i>${n.icon}</i>${n.label}</a>`).join('')}
+  </div>
+</div></nav>`;
+}
+const HEADER_CSS = `
+  .gnb{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e2e7ef;box-shadow:0 1px 3px rgba(20,40,90,.04)}
+  .gnb-in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:0 14px;height:48px}
+  .gnb-brand{font-size:14px;font-weight:800;color:#1a55c4;text-decoration:none;white-space:nowrap}
+  .gnb-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+  .gnb-links::-webkit-scrollbar{display:none}
+  .gnb-link{display:flex;align-items:center;gap:5px;font-size:13px;color:#4a5568;text-decoration:none;padding:7px 11px;border-radius:8px;white-space:nowrap}
+  .gnb-link i{font-style:normal;font-size:13px}
+  .gnb-link:hover{background:#f1f5fb;color:#256ef4}
+  .gnb-link.on{background:#eef3fe;color:#1a55c4;font-weight:700}
+  @media(max-width:640px){
+    .gnb-in{gap:8px;padding:0 10px;height:46px}
+    .gnb-brand{font-size:12.5px}
+    .gnb-link{font-size:12.5px;padding:6px 9px}
+  }
+  @media(max-width:420px){ .gnb-brand{display:none} }
+`;
+
 // 모든 페이지 공통 사이드바(좌: 카테고리 · 우: 광고) HTML
 function sidebarsHtml(opts) {
   opts = opts || {};
@@ -514,7 +550,7 @@ function sidebarsHtml(opts) {
 const SIDEBAR_CSS = `
   .layout{display:flex;justify-content:center;align-items:flex-start;gap:18px;max-width:1400px;margin:0 auto}
   .layout>.wrap{flex:1 1 780px;min-width:0;margin:0}
-  .side{flex:0 0 200px;position:sticky;top:12px}
+  .side{flex:0 0 200px;position:sticky;top:60px}
   .side-right{flex:0 0 200px}
   .side-box{background:#fff;border:1px solid #e2e7ef;border-radius:12px;padding:12px 13px;margin-bottom:12px}
   .side-title{font-size:12px;font-weight:700;color:#8a94a3;margin-bottom:8px}
@@ -547,4 +583,4 @@ function siblings(code) {
 }
 function getNode(code) { return NODES.get(code) || null; }
 
-module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, sideNavHtml, sidebarsHtml, SIDEBAR_CSS, adSlotHtml, adSideHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };
+module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, sideNavHtml, sidebarsHtml, SIDEBAR_CSS, headerNavHtml, HEADER_CSS, adSlotHtml, adSideHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };

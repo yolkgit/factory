@@ -21,6 +21,10 @@ const CSS = `
   .navlinks a{margin-right:14px;text-decoration:none}
 `;
 
+let headerNav = () => '';
+let headerCss = '';
+function setHeader(fn, css) { headerNav = fn; headerCss = css || ''; }
+
 const UPDATED = '2026년 9월 2일';
 
 function shell(title, desc, url, body) {
@@ -32,8 +36,9 @@ function shell(title, desc, url, body) {
 <link rel="canonical" href="${url}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <meta name="robots" content="index, follow" />
-<style>${CSS}</style>
+<style>${headerCss}${CSS}</style>
 </head><body>
+${headerNav("")}
 <div class="wrap">
   <div class="top"><a href="/">← 산업분류코드 조회 홈</a></div>
   ${body}
@@ -210,4 +215,4 @@ function renderTerms(site) {
 `);
 }
 
-module.exports = { renderAbout, renderPrivacy, renderTerms };
+module.exports = { renderAbout, renderPrivacy, renderTerms, setHeader };

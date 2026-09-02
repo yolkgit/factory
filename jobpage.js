@@ -80,6 +80,9 @@ function sectionsNavHtml() {
 let adSlotHtml = () => '';
 let sidebarsFn = () => ({ left: '', right: '' });
 let sidebarCss = '';
+let headerNav = () => '';
+let headerCss = '';
+function setHeader(fn, css) { headerNav = fn; headerCss = css || ''; }
 function setAdSlot(fn) { adSlotHtml = fn; }
 function setSidebars(fn, css) { sidebarsFn = fn; sidebarCss = css || ''; }
 
@@ -228,10 +231,12 @@ ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`
   footer{margin-top:30px;font-size:11.5px;color:#9aa3b0;text-align:center}
   .sn-item:hover{color:#16a37b !important}
   .sn-cur{background:#e7f6f0 !important;color:#0f7a5a !important}
+${headerCss}
 ${sidebarCss}
 </style>
 </head>
 <body>
+${headerNav("job")}
 <div class="layout">
 ${SB.left}
 <div class="wrap">
@@ -279,10 +284,12 @@ function renderJobIndex(siteUrl) {
   .kids a{color:#4a5568;font-weight:400}
   footer{margin-top:26px;font-size:11.5px;color:#9aa3b0;text-align:center}
   .sn-item:hover{color:#16a37b !important}
+${headerCss}
 ${sidebarCss}
 </style>
 </head>
 <body>
+${headerNav("job")}
 <div class="layout">
 ${jobSidebars('').left}
 <div class="wrap">
@@ -305,4 +312,4 @@ ${jobSidebars('').right}
 </html>`;
 }
 
-module.exports = { renderJobPage, renderJobIndex, CODES_ALL, hasCode, sectionsNavHtml, setAdSlot, setSidebars, count: () => NODES.size };
+module.exports = { renderJobPage, renderJobIndex, CODES_ALL, hasCode, sectionsNavHtml, setAdSlot, setSidebars, setHeader, count: () => NODES.size };

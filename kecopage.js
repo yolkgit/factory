@@ -22,6 +22,9 @@ function pathOf(code) { const p = []; let cur = NODES.get(code); while (cur) { p
 
 let adSlotHtml = () => '';
 let sidebarCss = '';
+let headerNav = () => '';
+let headerCss = '';
+function setHeader(fn, css) { headerNav = fn; headerCss = css || ''; }
 function setDeps(adFn, css) { adSlotHtml = adFn; sidebarCss = css || ''; }
 
 function kecoNavHtml(currentCode) {
@@ -57,6 +60,7 @@ function sidebars(currentCode) {
 }
 
 const PAGE_CSS = (extra) => `
+${headerCss}
   body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#1c2430;background:#f4f6fa;margin:0;line-height:1.6}
   .wrap{max-width:780px;margin:0 auto;padding:16px 16px 60px}
   .top{background:linear-gradient(135deg,#6b3fa0,#8b5cc7);color:#fff;padding:16px;border-radius:12px;display:flex;gap:14px;flex-wrap:wrap}
@@ -128,6 +132,7 @@ function renderKecoPage(code, siteUrl) {
 ${faqLd ? `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>` : ''}
 <style>${PAGE_CSS(sidebarCss)}</style>
 </head><body>
+${headerNav("keco")}
 <div class="layout">
 ${sidebars(code)}
 <div class="wrap">
@@ -161,6 +166,7 @@ function renderKecoIndex(siteUrl) {
   .kids a{color:#4a5568;font-weight:400}
 </style>
 </head><body>
+${headerNav("keco")}
 <div class="layout">
 ${sidebars('')}
 <div class="wrap">
@@ -179,4 +185,4 @@ ${sidebars('')}
 </body></html>`;
 }
 
-module.exports = { renderKecoPage, renderKecoIndex, CODES_ALL: () => [...NODES.keys()], hasCode: (c) => NODES.has(c), setDeps, count: () => NODES.size };
+module.exports = { renderKecoPage, renderKecoIndex, setHeader, CODES_ALL: () => [...NODES.keys()], hasCode: (c) => NODES.has(c), setDeps, count: () => NODES.size };

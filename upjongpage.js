@@ -32,9 +32,13 @@ const pct = (v) => (v || v === 0 ? (Number.isInteger(v) ? v : Number(v).toFixed(
 let ksicNode = () => null;
 let adSlotHtml = () => '';
 let sidebarCss = '';
+let headerNav = () => '';
+let headerCss = '';
+function setHeader(fn, css) { headerNav = fn; headerCss = css || ''; }
 function setDeps(nodeFn, adFn, css) { ksicNode = nodeFn; adSlotHtml = adFn; sidebarCss = css || ''; }
 
 const CSS = (extra) => `
+${headerCss}
   body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#1c2430;background:#f4f6fa;margin:0;line-height:1.6}
   .wrap{max-width:780px;margin:0 auto;padding:16px 16px 60px}
   .top{background:linear-gradient(135deg,#b8541f,#e07b39);color:#fff;padding:16px;border-radius:12px;display:flex;gap:14px;flex-wrap:wrap}
@@ -176,6 +180,7 @@ function renderUpjongPage(code, siteUrl) {
 <script type="application/ld+json">${JSON.stringify(faqLd)}</script>
 <style>${CSS(sidebarCss)}</style>
 </head><body>
+${headerNav("upjong")}
 <div class="wrap">
   <div class="top"><a href="/">← 산업분류코드 조회</a><a href="/upjong">업종코드 전체</a></div>
   <nav class="bc"><a href="/upjong">국세청 업종코드</a> › <span>${esc(code)} ${esc(info.un)}</span></nav>
@@ -228,6 +233,7 @@ function renderUpjongIndex(siteUrl) {
   .rcard .rg{font-size:12.5px;color:#2b7a3d;margin-top:3px}
 </style>
 </head><body>
+${headerNav("upjong")}
 <div class="wrap">
   <div class="top"><a href="/">← 산업분류코드 조회</a><a href="/job">직업분류코드</a></div>
   <h1>국세청 업종코드 조회</h1>
@@ -282,7 +288,7 @@ document.getElementById('q').addEventListener('keypress', function(e){ if(e.key=
 }
 
 module.exports = {
-  renderUpjongPage, renderUpjongIndex, setDeps,
+  renderUpjongPage, renderUpjongIndex, setDeps, setHeader,
   CODES_ALL: () => [...BY_CODE.keys()],
   hasCode: (c) => BY_CODE.has(c),
   count: () => BY_CODE.size,

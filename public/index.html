@@ -117,7 +117,7 @@
   /* 3단 레이아웃: 좌 카테고리 · 중앙 콘텐츠 · 우 광고 */
   .layout { display: flex; justify-content: center; align-items: flex-start; gap: 18px; max-width: 1400px; margin: 0 auto; }
   .layout > .wrap { flex: 1 1 780px; min-width: 0; margin: 0; }
-  .side { flex: 0 0 200px; position: sticky; top: 12px; margin-top: -34px; }
+  .side { flex: 0 0 200px; position: sticky; top: 60px; margin-top: -34px; }
   .side-right { flex: 0 0 190px; }
   .side-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; margin-bottom: 12px; }
   .side-title { font-size: 12px; font-weight: 700; color: #8a94a3; margin-bottom: 8px; letter-spacing: .2px; }
@@ -139,7 +139,7 @@
   @media (max-width: 1180px) { .side-right { display: none; } }
   @media (max-width: 980px) { .side-left { display: none; } .layout { display: block; } .layout > .wrap { margin: 0 auto; } }
   .searchbox {
-    position: sticky; top: 10px; z-index: 5;
+    position: sticky; top: 58px; z-index: 5;
     margin-top: -46px;
     display: flex; gap: 8px;
     background: var(--card);
@@ -390,6 +390,7 @@
   .footlinks { display: inline-block; margin-top: 8px; }
   .footlinks a { color: #8a94a3; text-decoration: none; }
   .footlinks a:hover { color: var(--blue); text-decoration: underline; }
+%%HEADER_CSS%%
   .toast {
     position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
     background: #222c3a; color: #fff; padding: 9px 18px; border-radius: 30px;
@@ -417,6 +418,7 @@
 </style>
 </head>
 <body>
+%%HEADER%%
 <header>
   <h1>산업분류코드 검색</h1>
   <p>KSIC 11차 · 해설 · 10차 연계 · 국세청 업종코드/경비율 · 산재보험료율 · 중소기업 기준</p>
