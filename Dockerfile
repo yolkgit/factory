@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY server.js codepage.js jobpage.js kecopage.js ad-slot.html ./
+COPY server.js codepage.js jobpage.js kecopage.js sitepages.js ad-slot.html ./
 COPY public/ ./public/
 COPY data/ ./data/
 
