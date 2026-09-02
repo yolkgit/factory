@@ -434,7 +434,8 @@ ${SIDEBARS.left}
   <h1><span class="c">${esc(code)}</span> ${esc(node.name)}<span class="lv">${LV_NAME[node.level]}</span></h1>
   ${body}
   ${adSlotHtml()}
-  <footer>출처: 통계청 한국표준산업분류(KSIC 11차) · 국세청·고용노동부·한국산업단지공단 자료 기반 · 참고용</footer>
+  <footer>출처: 통계청 한국표준산업분류(KSIC 11차) · 국세청·고용노동부·한국산업단지공단 자료 기반 · 참고용<br>
+    <a href="/about" style="color:#9aa3b0">사이트 소개</a> · <a href="/privacy" style="color:#9aa3b0">개인정보처리방침</a> · <a href="/terms" style="color:#9aa3b0">이용약관</a></footer>
 </div>
 ${SIDEBARS.right}
 </div>

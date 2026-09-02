@@ -308,6 +308,9 @@ app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
   xml += `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n`;
+  for (const p of ['about', 'privacy', 'terms']) {
+    xml += `  <url><loc>${base}/${p}</loc><lastmod>${today}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>\n`;
+  }
   for (const code of codepage.CODES_ALL()) {
     xml += `  <url><loc>${base}/code/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
   }
@@ -324,6 +327,12 @@ app.get('/sitemap.xml', (req, res) => {
   xml += `</urlset>\n`;
   res.type('application/xml').send(xml);
 });
+
+// 사이트 소개·개인정보처리방침·이용약관 (광고 심사 필수 페이지)
+const sitepages = require('./sitepages');
+app.get('/about', (req, res) => res.type('html').send(sitepages.renderAbout(siteUrl(req))));
+app.get('/privacy', (req, res) => res.type('html').send(sitepages.renderPrivacy(siteUrl(req))));
+app.get('/terms', (req, res) => res.type('html').send(sitepages.renderTerms(siteUrl(req))));
 
 // 직업분류(KSCO) 인덱스·코드별 SSR 페이지
 app.get('/job', (req, res) => {
