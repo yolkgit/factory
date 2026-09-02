@@ -14,16 +14,15 @@ function loadKey() {
   return JSON.parse(fs.readFileSync(p, 'utf8')).key;
 }
 
-function allUrls() {
-  const codepage = require('../codepage');
-  const jobpage = require('../jobpage');
-  const kecopage = require('../kecopage');
-  const upjongpage = require('../upjongpage');
-  const urls = [`${SITE}/`, `${SITE}/job`, `${SITE}/keco`, `${SITE}/upjong`, `${SITE}/about`, `${SITE}/privacy`, `${SITE}/terms`];
-  for (const c of codepage.CODES_ALL()) urls.push(`${SITE}/code/${c}`);
-  for (const c of jobpage.CODES_ALL()) urls.push(`${SITE}/job/${c}`);
-  for (const c of kecopage.CODES_ALL()) urls.push(`${SITE}/keco/${c}`);
-  for (const c of upjongpage.CODES_ALL()) urls.push(`${SITE}/upjong/${c}`);
+// sections: 제출할 구간 이름 목록(미지정 시 전체). hub=허브 페이지, code/job/keco/upjong=각 섹션 상세
+function allUrls(sections) {
+  const want = (s) => !sections || sections.includes(s);
+  const urls = [];
+  if (want('hub')) urls.push(`${SITE}/`, `${SITE}/job`, `${SITE}/keco`, `${SITE}/upjong`, `${SITE}/about`, `${SITE}/privacy`, `${SITE}/terms`);
+  if (want('code')) for (const c of require('../codepage').CODES_ALL()) urls.push(`${SITE}/code/${c}`);
+  if (want('job')) for (const c of require('../jobpage').CODES_ALL()) urls.push(`${SITE}/job/${c}`);
+  if (want('keco')) for (const c of require('../kecopage').CODES_ALL()) urls.push(`${SITE}/keco/${c}`);
+  if (want('upjong')) for (const c of require('../upjongpage').CODES_ALL()) urls.push(`${SITE}/upjong/${c}`);
   return urls;
 }
 
@@ -47,9 +46,12 @@ async function submit(key, urls) {
 async function main() {
   const key = loadKey();
   const limitArg = process.argv.indexOf('--limit');
-  let urls = allUrls();
+  const secArg = process.argv.indexOf('--section');
+  const sections = secArg > -1 ? String(process.argv[secArg + 1] || '').split(',').filter(Boolean) : null;
+  let urls = allUrls(sections);
   if (limitArg > -1) urls = urls.slice(0, Number(process.argv[limitArg + 1]) || 100);
-  console.log(`IndexNow 제출: ${urls.length.toLocaleString()}개 URL (host ${HOST})`);
+  if (!urls.length) { console.error('제출할 URL이 없습니다. --section 값 확인: hub,code,job,keco,upjong'); process.exit(1); }
+  console.log(`IndexNow 제출: ${urls.length.toLocaleString()}개 URL (host ${HOST}${sections ? `, 구간 ${sections.join(',')}` : ''})`);
 
   for (let i = 0; i < urls.length; i += BATCH) {
     const chunk = urls.slice(i, i + BATCH);
