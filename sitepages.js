@@ -25,7 +25,17 @@ let headerNav = () => '';
 let headerCss = '';
 function setHeader(fn, css) { headerNav = fn; headerCss = css || ''; }
 
-const UPDATED = '2026년 9월 2일';
+const UPDATED = '2026년 9월 3일';
+
+// 운영자 블로그(blog.naver.com/soritok)에 연재하는 사용 가이드.
+// 발행된 글만 넣는다 — 네이버 예약 발행 글은 발행 시점에 logNo가 정해지므로 미리 알 수 없다.
+// 새 글이 나가면 { n, t, id } 한 줄만 추가하면 된다.
+const BLOG_URL = 'https://blog.naver.com/soritok';
+const BLOG_POSTS = [
+  { n: '1편', t: '산업분류코드 조회, 물건 이름만 알면 3초 만에 찾는 법 (KSIC 11차)', id: '224399369127' },
+  { n: '3편', t: '업종코드와 산업분류코드, 같은 건 줄 알았는데 아니었습니다', id: '224382061367' },
+  { n: '4편', t: '산업분류코드 11차 개정, 137개가 바뀌었습니다 (변환하는 법)', id: '224399368443' },
+];
 
 function shell(title, desc, url, body) {
   return `<!DOCTYPE html>
@@ -89,6 +99,13 @@ function renderAbout(site) {
 <p><b>2. 한계를 표시합니다.</b> 근사값이거나 데이터 기준일이 지난 항목은 화면에 그 사실을 함께 표기합니다.</p>
 <p><b>3. 자동 갱신합니다.</b> 통계청 분류 자료는 반기(1월·7월)마다 자동으로 재수집합니다.</p>
 </div>
+
+<h2>사용 가이드</h2>
+<p>코드를 처음 찾아보시는 분들이 자주 막히는 지점을 운영자 블로그에 정리해 두었습니다.</p>
+<ul>
+${BLOG_POSTS.map((p) => `  <li><a href="${BLOG_URL}/${p.id}" target="_blank" rel="noopener">${p.t}</a></li>`).join('\n')}
+</ul>
+<p style="font-size:13.5px;color:#7a8698">연재 중인 글은 <a href="${BLOG_URL}" target="_blank" rel="noopener">blog.naver.com/soritok</a>에서 이어서 보실 수 있습니다.</p>
 
 <h2>이용 안내</h2>
 <p>본 사이트의 정보는 <b>참고용</b>입니다. 사업자등록·세무신고·인허가 등 법적 효력이 필요한 절차는 반드시 해당 기관의 공식 자료로 확인하시기 바랍니다.</p>
