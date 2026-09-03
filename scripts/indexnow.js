@@ -21,10 +21,12 @@ function allUrls(sections) {
   if (want('hub')) urls.push(`${SITE}/`, `${SITE}/job`, `${SITE}/keco`, `${SITE}/upjong`, `${SITE}/about`, `${SITE}/privacy`, `${SITE}/terms`);
   // sitemap.xml과 같은 기준(SITEMAP_CODES)을 쓴다. 얇은 페이지는 제출해도 색인되지 않고
   // 사이트 전체 평가만 끌어내리므로, 두 경로에서 서로 다른 목록을 보내지 않도록 맞춘다.
-  if (want('code')) for (const c of require('../codepage').SITEMAP_CODES()) urls.push(`${SITE}/code/${c}`);
-  if (want('job')) for (const c of require('../jobpage').SITEMAP_CODES()) urls.push(`${SITE}/job/${c}`);
-  if (want('keco')) for (const c of require('../kecopage').SITEMAP_CODES()) urls.push(`${SITE}/keco/${c}`);
-  if (want('upjong')) for (const c of require('../upjongpage').SITEMAP_CODES()) urls.push(`${SITE}/upjong/${c}`);
+  // SITEMAP_CODES는 렌더 결과 길이로 판정하므로 server.js와 똑같이 의존성을 주입해야 한다.
+  const { codepage, jobpage, kecopage, upjongpage } = require('../wire').wireAll();
+  if (want('code')) for (const c of codepage.SITEMAP_CODES()) urls.push(`${SITE}/code/${c}`);
+  if (want('job')) for (const c of jobpage.SITEMAP_CODES()) urls.push(`${SITE}/job/${c}`);
+  if (want('keco')) for (const c of kecopage.SITEMAP_CODES()) urls.push(`${SITE}/keco/${c}`);
+  if (want('upjong')) for (const c of upjongpage.SITEMAP_CODES()) urls.push(`${SITE}/upjong/${c}`);
   return urls;
 }
 
@@ -54,6 +56,12 @@ async function main() {
   if (limitArg > -1) urls = urls.slice(0, Number(process.argv[limitArg + 1]) || 100);
   if (!urls.length) { console.error('제출할 URL이 없습니다. --section 값 확인: hub,code,job,keco,upjong'); process.exit(1); }
   console.log(`IndexNow 제출: ${urls.length.toLocaleString()}개 URL (host ${HOST}${sections ? `, 구간 ${sections.join(',')}` : ''})`);
+  // --dry: 실제 제출 없이 대상 수만 확인한다(sitemap.xml과 개수가 맞는지 대조할 때 쓴다)
+  if (process.argv.includes('--dry')) {
+    for (const u of urls.slice(0, 3)) console.log(`  ${u}`);
+    console.log(`  ... (dry-run, 제출하지 않음)`);
+    return;
+  }
 
   for (let i = 0; i < urls.length; i += BATCH) {
     const chunk = urls.slice(i, i + BATCH);

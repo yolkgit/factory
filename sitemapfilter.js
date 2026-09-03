@@ -12,12 +12,38 @@
 
 const MIN_BODY_CHARS = 600;
 
+// class="NAME"인 div를 여는/닫는 태그 깊이를 세어 통째로 제거한다.
+// 중첩 div가 있어 정규식 하나로는 정확히 잘리지 않는다.
+function stripBlock(html, name) {
+  const open = `<div class="${name}"`;
+  let out = html;
+  for (;;) {
+    const start = out.indexOf(open);
+    if (start === -1) return out;
+    let i = start, depth = 0;
+    const tag = /<\/?div\b/g;
+    tag.lastIndex = start;
+    let m;
+    while ((m = tag.exec(out)) !== null) {
+      depth += m[0][1] === '/' ? -1 : 1;
+      if (depth === 0) { i = m.index + m[0].length; break; }
+    }
+    if (depth !== 0) return out; // 짝이 안 맞으면 건드리지 않는다
+    const close = out.indexOf('>', i);
+    out = out.slice(0, start) + out.slice(close === -1 ? i : close + 1);
+  }
+}
+
 // 헤더·사이드바·푸터를 뺀 본문(.wrap 안, footer 앞)의 글자 수.
+// 광고 슬롯은 제외한다 — 광고와 법정 고지문(219자)은 페이지의 내용이 아닌데
+// 포함해서 재면 실질 400자짜리가 619자로 기준을 통과해 판정이 헐거워진다.
+// 또 광고는 주입되는 값이라, 포함하면 서버(주입 있음)와 indexnow 스크립트(주입 없음)가
+// 서로 다른 목록을 만들어낸다(실제로 250개가 어긋났다).
 function bodyLength(html) {
   if (!html) return 0;
   const m = html.match(/<div class="wrap">([\s\S]*?)<footer/);
   if (!m) return 0;
-  return m[1]
+  return stripBlock(m[1], 'ad-slot')
     .replace(/<script[\s\S]*?<\/script>/g, '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')

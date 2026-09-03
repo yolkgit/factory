@@ -14,14 +14,8 @@ function siteUrl(req) {
   return `${proto}://${req.headers.host}`;
 }
 const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
-const codepage = require('./codepage');
-const jobpage = require('./jobpage');
-jobpage.setAdSlot(codepage.adSlotHtml); // 광고 슬롯 공유
-jobpage.setSidebars(codepage.sidebarsHtml, codepage.SIDEBAR_CSS); // 사이드바 공유
-jobpage.setHeader(codepage.headerNavHtml, codepage.HEADER_CSS);
-const kecopage = require('./kecopage');
-kecopage.setDeps(codepage.adSlotHtml, codepage.SIDEBAR_CSS);
-kecopage.setHeader(codepage.headerNavHtml, codepage.HEADER_CSS);
+// 페이지 모듈 간 주입은 wire.js 한 곳에서 한다(scripts/indexnow.js도 같은 것을 쓴다).
+const { codepage, jobpage, kecopage } = require('./wire').wireAll();
 
 // 한국산업단지공단 공장등록생산정보조회서비스 (data.go.kr 오픈API)
 // FACTORY_API_KEY: data.go.kr에서 발급받은 '일반 인증키(Decoding)'를 환경변수로 주입
@@ -340,9 +334,7 @@ app.get('/sitemap.xml', (req, res) => {
 });
 
 // 국세청 업종코드(6자리) 전용 페이지 — "업종코드" 검색 의도(세금·경비율)에 직접 대응
-const upjongpage = require('./upjongpage');
-upjongpage.setDeps(codepage.getNode, codepage.adSlotHtml, codepage.SIDEBAR_CSS);
-upjongpage.setHeader(codepage.headerNavHtml, codepage.HEADER_CSS);
+const upjongpage = require('./upjongpage'); // 주입은 wire.js에서 이미 끝났다
 app.get('/upjong', (req, res) => res.type('html').send(upjongpage.renderUpjongIndex(siteUrl(req))));
 app.get('/upjong/:code', (req, res) => {
   const html = upjongpage.renderUpjongPage(String(req.params.code || '').trim(), siteUrl(req));
@@ -351,8 +343,7 @@ app.get('/upjong/:code', (req, res) => {
 });
 
 // 사이트 소개·개인정보처리방침·이용약관 (광고 심사 필수 페이지)
-const sitepages = require('./sitepages');
-sitepages.setHeader(codepage.headerNavHtml, codepage.HEADER_CSS);
+const sitepages = require('./sitepages'); // 주입은 wire.js에서 이미 끝났다
 app.get('/about', (req, res) => res.type('html').send(sitepages.renderAbout(siteUrl(req))));
 app.get('/privacy', (req, res) => res.type('html').send(sitepages.renderPrivacy(siteUrl(req))));
 app.get('/terms', (req, res) => res.type('html').send(sitepages.renderTerms(siteUrl(req))));
