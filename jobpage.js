@@ -60,9 +60,11 @@ function descBlock(code) {
   const d = DESC[code];
   if (!d || !d.d) return '';
   const lines = d.d.split('\n').map((line) => {
-    if (line === '[예시]') return '<div class="sec inc">직업 예시</div>';
+    if (line === '[예시]' || line === '[직업예시]') return '<div class="sec inc">직업 예시</div>';
     if (line === '[제외]') return '<div class="sec exc">제외</div>';
     if (line === '[직무개요]' || line === '[직무 개요]') return '<div class="sec inc">직무 개요</div>';
+    // 통계청 원문에 다른 구분자가 섞여 나와도 대괄호 표기가 그대로 노출되지 않게 한다.
+    if (/^\[[^\]]{1,12}\]$/.test(line)) return `<div class="sec inc">${esc(line.slice(1, -1))}</div>`;
     const html = esc(line).replace(/(\d{4,5})/g, (m) => (NODES.has(m) ? `<a href="/job/${m}">${m}</a>` : m));
     return `<div>${html}</div>`;
   }).join('');

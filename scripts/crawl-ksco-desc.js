@@ -35,9 +35,13 @@ function parseDetail(html) {
   const dm = html.match(/설명\(한글\)[\s\S]*?<td[^>]*colspan=["']?3["']?[^>]*>([\s\S]*?)<\/td>/);
   if (dm) {
     desc = dm[1]
+      // 통계청 응답은 같은 설명을 HTML 주석으로 한 번 더 담아 보낸다.
+      // 주석을 먼저 통째로 걷어내지 않으면 <[^>]*> 규칙이 "<!--...<BR>"까지만 지워
+      // 주석 속 본문이 중복으로 남고 끝에 "-->"가 붙는다.
+      .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/<a[^>]*>([\s\S]*?)<\/a>/g, '$1')
       .replace(/<\s*br\s*\/?\s*>/gi, '\n')
-      .replace(/<\s*(예시|제외|주요활동|포함|직무개요|직무\s*개요)\s*>/g, '\n[$1]\n')
+      .replace(/<\s*(직업예시|예시|제외|주요활동|포함|직무개요|직무\s*개요)\s*>/g, '\n[$1]\n')
       .replace(/<[^>]*>/g, '')
       .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
       .replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n')
@@ -74,8 +78,13 @@ async function main() {
   const dataDir = path.join(__dirname, '..', 'data');
   const tree = JSON.parse(fs.readFileSync(path.join(dataDir, 'ksco-tree.json'), 'utf8'));
   const maxLevel = Math.max(...tree.map((n) => n.level));
-  const leaves = tree.filter((n) => n.level === maxLevel);
-  console.log(`KSCO 세분류(level ${maxLevel}) ${leaves.length}개 해설 수집 시작`);
+  let leaves = tree.filter((n) => n.level === maxLevel);
+  // --limit N: 통계청 서버에 전체를 걸기 전에 소량으로 수집·파싱이 되는지 확인한다.
+  // --dry: 파일로 저장하지 않고 결과만 출력한다.
+  const li = process.argv.indexOf('--limit');
+  if (li > -1) leaves = leaves.slice(0, Number(process.argv[li + 1]) || 10);
+  const dry = process.argv.includes('--dry');
+  console.log(`KSCO 세분류(level ${maxLevel}) ${leaves.length}개 해설 수집 시작${dry ? ' (dry-run)' : ''}`);
 
   const out = {};
   let idx = 0, done = 0, fail = 0;
@@ -89,8 +98,14 @@ async function main() {
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   console.log();
-  fs.writeFileSync(path.join(dataDir, 'ksco-desc.json'), JSON.stringify(out), 'utf8');
-  console.log(`저장: ${Object.keys(out).length}개, 설명있음 ${Object.values(out).filter((v) => v.d).length}, 실패 ${fail}`);
+  const withDesc = Object.values(out).filter((v) => v.d);
+  if (dry) {
+    for (const [c, v] of Object.entries(out).slice(0, 3)) console.log(`\n── ${c} (${v.e}) ──\n${v.d}`);
+  } else {
+    fs.writeFileSync(path.join(dataDir, 'ksco-desc.json'), JSON.stringify(out), 'utf8');
+  }
+  const avg = withDesc.length ? Math.round(withDesc.reduce((s, v) => s + v.d.length, 0) / withDesc.length) : 0;
+  console.log(`\n${dry ? '수집(미저장)' : '저장'}: ${Object.keys(out).length}개, 설명있음 ${withDesc.length}(평균 ${avg}자), 실패 ${fail}`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
