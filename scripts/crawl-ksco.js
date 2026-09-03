@@ -97,8 +97,13 @@ async function fetchListPage(pageIndex, retry = 8) {
 async function crawlIndex() {
   const first = await fetchListPage(1);
   if (!first.total) throw new Error('total 파싱 실패');
-  const totalPages = Math.ceil(first.total / PER_PAGE);
-  console.log(`[색인어] total ${first.total}, pages ${totalPages}`);
+  // 페이지당 건수는 하드코딩하지 않고 첫 페이지의 실제 행 수에서 얻는다.
+  // PER_PAGE=10으로 잡아두었더니 실제로는 100건이라 페이지 수를 10배로 계산했고,
+  // 존재하지 않는 2,857쪽을 8번씩 재시도하느라 수집이 끝나지 않았다
+  // (31,745건은 3,175쪽이 아니라 317쪽이다).
+  const perPage = first.rows.length || PER_PAGE;
+  const totalPages = Math.ceil(first.total / perPage);
+  console.log(`[색인어] total ${first.total}, ${perPage}건/쪽, pages ${totalPages}`);
   const all = new Array(totalPages);
   all[0] = first.rows;
   let page = 2, done = 1;

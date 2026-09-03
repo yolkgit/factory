@@ -60,8 +60,10 @@ function parsePage(html) {
 async function main() {
   const first = await fetchPage(1);
   if (!first.total) throw new Error('total 파싱 실패');
-  const totalPages = Math.ceil(first.total / PER_PAGE);
-  console.log(`total terms: ${first.total}, pages: ${totalPages}`);
+  // 페이지당 건수는 첫 페이지의 실제 행 수에서 얻는다(하드코딩한 PER_PAGE와 서버 값이 달랐다).
+  const perPage = first.rows.length || PER_PAGE;
+  const totalPages = Math.ceil(first.total / perPage);
+  console.log(`total terms: ${first.total}, ${perPage}/page, pages: ${totalPages}`);
 
   const all = new Array(totalPages);
   all[0] = first.rows;
