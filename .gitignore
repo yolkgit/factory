@@ -3,3 +3,6 @@ node_modules/
 # 서버 자동 업데이트 산출물
 data.bak/
 *.bak
+
+# 임시 검증 스크립트
+scripts/.tmp-*.js
