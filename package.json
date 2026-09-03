@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "crawl": "node scripts/crawl-tree.js && node scripts/crawl-index.js && node scripts/crawl-oldnew.js && node scripts/crawl-desc.js",
+    "crawl": "npm run crawl-ksic && npm run crawl-job",
+    "crawl-ksic": "node scripts/crawl-tree.js && node scripts/crawl-index.js && node scripts/crawl-oldnew.js && node scripts/crawl-desc.js",
+    "crawl-job": "node scripts/crawl-ksco.js && node scripts/crawl-ksco-desc.js && node scripts/crawl-keco.js && node scripts/crawl-keco-link.js",
     "build-all": "node scripts/build-upjong.js && node scripts/build-gyeongbi.js && node scripts/build-data.js",
     "build-upjong": "node scripts/build-upjong.js",
     "build-gyeongbi": "node scripts/build-gyeongbi.js",
