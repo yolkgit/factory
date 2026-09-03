@@ -6,6 +6,19 @@ const dataDir = path.join(__dirname, 'data');
 const load = (f, fb) => { try { return JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8')); } catch (e) { return fb; } };
 
 const TREE = load('keco-tree.json', []);
+// 통계청은 KECO에 대해 해설을 제공하지 않고 KSCO 연계코드만 준다.
+// 그 연계를 통해 KSCO 해설(ksco-desc.json)까지 끌어와 페이지를 채운다.
+const LINK = load('keco-link.json', {});
+const KSCO_DESC = load('ksco-desc.json', {});
+// 연계코드는 KSCO 세분류(4자리)인데 해설은 세세분류(5자리)에만 있다.
+// 세분류 → 해설 보유 세세분류 목록을 만들어 그 해설을 끌어온다.
+const KSCO_KIDS = new Map();
+for (const n of load('ksco-tree.json', [])) {
+  if (!n.parent) continue;
+  if (!KSCO_KIDS.has(n.parent)) KSCO_KIDS.set(n.parent, []);
+  KSCO_KIDS.get(n.parent).push({ code: n.code, name: n.name });
+}
+for (const a of KSCO_KIDS.values()) a.sort((x, y) => x.code.localeCompare(y.code));
 const LV_NAME = { 1: '대분류', 2: '중분류', 3: '소분류', 4: '세분류' };
 
 const NODES = new Map();
@@ -42,6 +55,41 @@ function kecoNavHtml(currentCode) {
   return [...NODES.values()].filter((n) => n.level === 1).sort((a, b) => a.code.localeCompare(b.code)).map((s) => render(s.code, 0)).join('\n');
 }
 
+// KSCO 연계코드와, 그 코드에 딸린 KSCO 해설(직무 정의·직업예시)을 함께 보여준다.
+// 고용직업분류만으로는 "이 직업이 정확히 무슨 일인지"를 알 수 없어 이용자가 결국
+// 표준직업분류를 다시 찾아야 하는데, 그 왕복을 없애준다.
+function descHtml(text) {
+  return text.split('\n').map((line) => (/^\[[^\]]{1,12}\]$/.test(line)
+    ? `<div class="sec">${esc(line.slice(1, -1))}</div>`
+    : `<div>${esc(line)}</div>`)).join('');
+}
+
+function linkBlock(code) {
+  const links = LINK[code];
+  if (!links || !links.length) return '';
+  let h = '<h2>한국표준직업분류(KSCO) 연계코드</h2>';
+  for (const l of links) {
+    h += `<div class="linkbox"><a class="linkcode" href="/job/${esc(l.code)}">${esc(l.code)} ${esc(l.name)}</a>`;
+    const own = KSCO_DESC[l.code];
+    if (own && own.d) {
+      h += `<div class="linkdesc">${descHtml(own.d)}</div>`;
+    } else {
+      const kids = (KSCO_KIDS.get(l.code) || []).filter((k) => KSCO_DESC[k.code] && KSCO_DESC[k.code].d);
+      // 세세분류가 하나뿐이면 사실상 같은 직업이므로 이름을 다시 적지 않는다.
+      if (kids.length === 1) {
+        h += `<div class="linkdesc">${descHtml(KSCO_DESC[kids[0].code].d)}</div>`;
+      } else {
+        for (const k of kids) {
+          h += `<div class="sub"><a class="subcode" href="/job/${esc(k.code)}">${esc(k.code)} ${esc(k.name)}</a>`
+            + `<div class="linkdesc">${descHtml(KSCO_DESC[k.code].d)}</div></div>`;
+        }
+      }
+    }
+    h += '</div>';
+  }
+  return h;
+}
+
 function sidebars(currentCode) {
   return `<aside class="side side-left">
   <div class="side-box">
@@ -73,6 +121,15 @@ ${headerCss}
   h2{font-size:16px;margin:24px 0 8px;border-top:1px solid #e2e7ef;padding-top:16px}
   .lead{font-size:14.5px;line-height:1.75;color:#2b3648;background:#f8f4fd;border:1px solid #e4d7f5;border-radius:10px;padding:12px 14px;margin:12px 0 4px}
   .linklist{list-style:none;padding:0;margin:0;columns:2;font-size:14px}
+  .linkbox{background:#fff;border:1px solid #e4d7f5;border-radius:10px;padding:12px 14px;margin:10px 0}
+  .linkcode{display:inline-block;font-weight:700;font-size:14.5px;color:#6b3fa0;text-decoration:none}
+  .linkcode:hover{text-decoration:underline}
+  .linkdesc{font-size:13.5px;color:#3d4a5c;line-height:1.75;margin-top:8px}
+  .linkdesc .sec{font-weight:700;font-size:12px;color:#6b3fa0;margin:8px 0 2px}
+  .sub{border-top:1px solid #f0e8fa;padding-top:9px;margin-top:9px}
+  .sub:first-of-type{border-top:0;padding-top:4px}
+  .subcode{font-weight:600;font-size:13.5px;color:#4a5568;text-decoration:none}
+  .subcode:hover{color:#6b3fa0;text-decoration:underline}
   .linklist li{margin:3px 0;break-inside:avoid}
   .linklist a{color:#8b5cc7;text-decoration:none}
   .linklist a:hover{text-decoration:underline}
@@ -115,6 +172,7 @@ function renderKecoPage(code, siteUrl) {
     ? `<p class="lead"><b>${esc(node.name)}</b>의 한국고용직업분류(KECO) <b>코드는 ${esc(code)}</b>입니다. ${esc(trail)} 아래 ${LV_NAME[node.level]}로 분류됩니다.</p>`
     : `<p class="lead"><b>${esc(node.name)}</b>(코드 <b>${esc(code)}</b>)은 한국고용직업분류(KECO)의 ${LV_NAME[node.level]}입니다. 아래에서 하위 ${kids.length}개 분류를 확인할 수 있습니다.</p>`;
   if (kids.length) body += `<h2>하위 분류 (${kids.length}개)</h2><ul class="linklist">${kids.map((k) => `<li>${codeLink(k)}</li>`).join('')}</ul>`;
+  body += linkBlock(code);
   const sibs = node.parent ? (CHILDREN.get(node.parent) || []).filter((c) => c !== code) : [];
   if (sibs.length) body += `<h2>같은 분류 내 다른 직업</h2><ul class="linklist">${sibs.map((c) => `<li>${codeLink(c)}</li>`).join('')}</ul>`;
 
