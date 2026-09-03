@@ -312,23 +312,27 @@ app.get('/sitemap.xml', (req, res) => {
   xml += `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n`;
   // 국세청 업종코드
   xml += `  <url><loc>${base}/upjong</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>\n`;
-  for (const code of upjongpage.CODES_ALL()) {
+  for (const code of upjongpage.SITEMAP_CODES()) {
     xml += `  <url><loc>${base}/upjong/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
   }
   for (const p of ['about', 'privacy', 'terms']) {
     xml += `  <url><loc>${base}/${p}</loc><lastmod>${today}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>\n`;
   }
-  for (const code of codepage.CODES_ALL()) {
+  // 아래 세 섹션은 CODES_ALL이 아니라 SITEMAP_CODES를 쓴다.
+  // 전량(6,294개)을 제출했더니 구글이 223개만 색인하고 4,494개를 "크롤링됨/발견됨 - 색인 안 됨"으로
+  // 처리했다. 목록만 있는 얇은 페이지가 절반이라 사이트 전체 평가가 내려간 것으로 보고
+  // 내용이 있는 페이지만 제출한다. 페이지 자체는 지우지 않으며 링크로 그대로 접근된다.
+  for (const code of codepage.SITEMAP_CODES()) {
     xml += `  <url><loc>${base}/code/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
   }
   // 직업분류(KSCO)
   xml += `  <url><loc>${base}/job</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>\n`;
-  for (const code of jobpage.CODES_ALL()) {
+  for (const code of jobpage.SITEMAP_CODES()) {
     xml += `  <url><loc>${base}/job/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
   }
   // 고용직업분류(KECO)
   xml += `  <url><loc>${base}/keco</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>\n`;
-  for (const code of kecopage.CODES_ALL()) {
+  for (const code of kecopage.SITEMAP_CODES()) {
     xml += `  <url><loc>${base}/keco/${code}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
   }
   xml += `</urlset>\n`;

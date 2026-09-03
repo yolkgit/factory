@@ -2,6 +2,7 @@
 // 크롤러·AI가 각 코드의 전체 내용을 읽도록 정적 HTML을 생성하고, 내부링크로 촘촘히 연결한다.
 const fs = require('fs');
 const path = require('path');
+const smf = require('./sitemapfilter');
 
 const DATA = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'ksic-data.json'), 'utf8'));
 
@@ -606,4 +607,7 @@ function siblings(code) {
 }
 function getNode(code) { return NODES.get(code) || null; }
 
-module.exports = { renderCodePage, CODES_ALL, sectionsNavHtml, sideNavHtml, sidebarsHtml, SIDEBAR_CSS, headerNavHtml, HEADER_CSS, adSlotHtml, adSideHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };
+// 사이트맵 제출 대상 — 판정 기준은 sitemapfilter.js 참고.
+const SITEMAP_CODES = smf.memoize(() => smf.filterByBody(CODES_ALL(), (c) => renderCodePage(c, '')));
+
+module.exports = { renderCodePage, CODES_ALL, SITEMAP_CODES, sectionsNavHtml, sideNavHtml, sidebarsHtml, SIDEBAR_CSS, headerNavHtml, HEADER_CSS, adSlotHtml, adSideHtml, hasCode: (c) => NODES.has(c), to10th, siblings, getNode };

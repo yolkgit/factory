@@ -1,6 +1,7 @@
 // 한국고용직업분류(KECO 2025) 코드별 SSR 페이지 생성기.
 const fs = require('fs');
 const path = require('path');
+const smf = require('./sitemapfilter');
 
 const dataDir = path.join(__dirname, 'data');
 const load = (f, fb) => { try { return JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8')); } catch (e) { return fb; } };
@@ -243,4 +244,7 @@ ${sidebars('')}
 </body></html>`;
 }
 
-module.exports = { renderKecoPage, renderKecoIndex, setHeader, CODES_ALL: () => [...NODES.keys()], hasCode: (c) => NODES.has(c), setDeps, count: () => NODES.size };
+// 사이트맵 제출 대상 — 판정 기준은 sitemapfilter.js 참고.
+const SITEMAP_CODES = smf.memoize(() => smf.filterByBody([...NODES.keys()], (c) => renderKecoPage(c, '')));
+
+module.exports = { renderKecoPage, renderKecoIndex, setHeader, CODES_ALL: () => [...NODES.keys()], SITEMAP_CODES, hasCode: (c) => NODES.has(c), setDeps, count: () => NODES.size };

@@ -19,10 +19,12 @@ function allUrls(sections) {
   const want = (s) => !sections || sections.includes(s);
   const urls = [];
   if (want('hub')) urls.push(`${SITE}/`, `${SITE}/job`, `${SITE}/keco`, `${SITE}/upjong`, `${SITE}/about`, `${SITE}/privacy`, `${SITE}/terms`);
-  if (want('code')) for (const c of require('../codepage').CODES_ALL()) urls.push(`${SITE}/code/${c}`);
-  if (want('job')) for (const c of require('../jobpage').CODES_ALL()) urls.push(`${SITE}/job/${c}`);
-  if (want('keco')) for (const c of require('../kecopage').CODES_ALL()) urls.push(`${SITE}/keco/${c}`);
-  if (want('upjong')) for (const c of require('../upjongpage').CODES_ALL()) urls.push(`${SITE}/upjong/${c}`);
+  // sitemap.xml과 같은 기준(SITEMAP_CODES)을 쓴다. 얇은 페이지는 제출해도 색인되지 않고
+  // 사이트 전체 평가만 끌어내리므로, 두 경로에서 서로 다른 목록을 보내지 않도록 맞춘다.
+  if (want('code')) for (const c of require('../codepage').SITEMAP_CODES()) urls.push(`${SITE}/code/${c}`);
+  if (want('job')) for (const c of require('../jobpage').SITEMAP_CODES()) urls.push(`${SITE}/job/${c}`);
+  if (want('keco')) for (const c of require('../kecopage').SITEMAP_CODES()) urls.push(`${SITE}/keco/${c}`);
+  if (want('upjong')) for (const c of require('../upjongpage').SITEMAP_CODES()) urls.push(`${SITE}/upjong/${c}`);
   return urls;
 }
 

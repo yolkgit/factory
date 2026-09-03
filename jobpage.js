@@ -1,6 +1,7 @@
 // 한국표준직업분류(KSCO) 8차 코드별 SSR 페이지 생성기. codepage.js(KSIC)와 동일한 구조.
 const fs = require('fs');
 const path = require('path');
+const smf = require('./sitemapfilter');
 
 const dataDir = path.join(__dirname, 'data');
 const load = (f, fallback) => {
@@ -314,4 +315,7 @@ ${jobSidebars('').right}
 </html>`;
 }
 
-module.exports = { renderJobPage, renderJobIndex, CODES_ALL, hasCode, sectionsNavHtml, setAdSlot, setSidebars, setHeader, count: () => NODES.size };
+// 사이트맵 제출 대상 — 판정 기준은 sitemapfilter.js 참고.
+const SITEMAP_CODES = smf.memoize(() => smf.filterByBody(CODES_ALL(), (c) => renderJobPage(c, '')));
+
+module.exports = { renderJobPage, renderJobIndex, CODES_ALL, SITEMAP_CODES, hasCode, sectionsNavHtml, setAdSlot, setSidebars, setHeader, count: () => NODES.size };

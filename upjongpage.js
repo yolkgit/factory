@@ -3,6 +3,7 @@
 // 업종코드 자체를 주제로 하는 페이지를 제공한다.
 const fs = require('fs');
 const path = require('path');
+const smf = require('./sitemapfilter');
 
 const dataDir = path.join(__dirname, 'data');
 const load = (f, fb) => { try { return JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8')); } catch (e) { return fb; } };
@@ -287,8 +288,13 @@ document.getElementById('q').addEventListener('keypress', function(e){ if(e.key=
 </body></html>`;
 }
 
+// 사이트맵 제출 대상 — 판정 기준은 sitemapfilter.js 참고.
+// 이 섹션은 현재 전량이 기준을 넘지만(경비율·해설이 모두 있음), 데이터가 바뀌어 얇아지면
+// 자동으로 걸러지도록 다른 섹션과 같은 규칙을 적용한다.
+const SITEMAP_CODES = smf.memoize(() => smf.filterByBody([...BY_CODE.keys()], (c) => renderUpjongPage(c, '')));
+
 module.exports = {
-  renderUpjongPage, renderUpjongIndex, setDeps, setHeader,
+  renderUpjongPage, renderUpjongIndex, setDeps, setHeader, SITEMAP_CODES,
   CODES_ALL: () => [...BY_CODE.keys()],
   hasCode: (c) => BY_CODE.has(c),
   count: () => BY_CODE.size,
